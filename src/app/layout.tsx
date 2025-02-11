@@ -5,12 +5,11 @@ import { Toaster } from 'react-hot-toast';
 
 const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-geist",
 });
 
 export const metadata: Metadata = {
-  title: "Tolarys Auto-École",
-  description: "Plateforme de gestion d'auto-école moderne et intuitive",
+  title: "Tolarys",
+  description: "Logiciel de gestion d'auto-école",
 };
 
 export default function RootLayout({

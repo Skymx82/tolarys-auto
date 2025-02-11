@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useState, useEffect, Suspense, Link } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -12,12 +12,14 @@ import {
 } from 'recharts';
 import {
   UsersIcon,
+  AcademicCapIcon,
+  CalendarIcon,
+  CurrencyEuroIcon,
   TrophyIcon,
   ClockIcon,
-  CurrencyEuroIcon,
+  ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
-  CalendarIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 
@@ -93,6 +95,33 @@ const upcomingLessons = [
   },
 ];
 
+const recentActivity = [
+  {
+    id: 1,
+    type: 'payment',
+    user: 'Thomas Martin',
+    action: 'a effectué un paiement de',
+    target: '150€',
+    date: 'Il y a 2 heures',
+  },
+  {
+    id: 2,
+    type: 'exam',
+    user: 'Julie Dupont',
+    action: 'a réussi son',
+    target: 'examen du code',
+    date: 'Il y a 3 heures',
+  },
+  {
+    id: 3,
+    type: 'lesson',
+    user: 'Marc Lambert',
+    action: 'a réservé une leçon de',
+    target: 'conduite',
+    date: 'Il y a 5 heures',
+  },
+];
+
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
@@ -139,7 +168,7 @@ const WeeklyLessonsChart = () => {
   );
 };
 
-export default function DashboardPage() {
+export default function DashboardDemo() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="py-6">
@@ -162,7 +191,7 @@ export default function DashboardPage() {
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Stats Grid */}
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
               <div
                 key={stat.name}
@@ -258,6 +287,67 @@ export default function DashboardPage() {
                   <button className="mt-4 w-full px-4 py-2 text-sm text-[#E91E63] border border-[#E91E63] rounded-lg hover:bg-[#E91E63] hover:text-white transition-colors">
                     Voir tout le planning
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="lg:col-span-3 rounded-lg bg-white shadow hover:shadow-lg transition-shadow duration-200">
+              <div className="p-6">
+                <h3 className="text-base font-semibold leading-6 text-gray-900 mb-4">
+                  Activité récente
+                </h3>
+                <div className="flow-root">
+                  <ul role="list" className="-mb-8">
+                    {recentActivity.map((activity, activityIdx) => (
+                      <li key={activity.id}>
+                        <div className="relative pb-8">
+                          {activityIdx !== recentActivity.length - 1 ? (
+                            <span
+                              className="absolute left-5 top-5 -ml-px h-full w-0.5 bg-gray-200"
+                              aria-hidden="true"
+                            />
+                          ) : null}
+                          <div className="relative flex items-start space-x-3">
+                            <div
+                              className={classNames(
+                                activity.type === 'payment'
+                                  ? 'bg-green-500'
+                                  : activity.type === 'exam'
+                                  ? 'bg-[#E91E63]'
+                                  : 'bg-yellow-500',
+                                'h-10 w-10 rounded-full flex items-center justify-center ring-8 ring-white'
+                              )}
+                            >
+                              {activity.type === 'payment' ? (
+                                <CurrencyEuroIcon className="h-6 w-6 text-white" />
+                              ) : activity.type === 'exam' ? (
+                                <AcademicCapIcon className="h-6 w-6 text-white" />
+                              ) : (
+                                <CalendarIcon className="h-6 w-6 text-white" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {activity.user}
+                                </div>
+                                <p className="mt-0.5 text-sm text-gray-500">
+                                  {activity.action}{' '}
+                                  <span className="font-medium text-gray-900">
+                                    {activity.target}
+                                  </span>
+                                </p>
+                              </div>
+                              <div className="mt-2 text-sm text-gray-500">
+                                {activity.date}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </div>

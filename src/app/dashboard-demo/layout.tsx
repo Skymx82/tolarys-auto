@@ -96,6 +96,7 @@ export default function DashboardLayout({
                       width={32}
                       height={32}
                     />
+                    <span className="text-lg font-semibold">Tolarys</span>
                   </div>
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -107,14 +108,14 @@ export default function DashboardLayout({
                                 href={item.href}
                                 className={classNames(
                                   pathname === item.href
-                                    ? 'bg-gray-50 text-primary'
-                                    : 'text-gray-700 hover:text-primary hover:bg-gray-50',
+                                    ? 'bg-gray-50 text-[#E91E63]'
+                                    : 'text-gray-700 hover:text-[#E91E63] hover:bg-gray-50',
                                   'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                 )}
                               >
                                 <item.icon
                                   className={classNames(
-                                    pathname === item.href ? 'text-primary' : 'text-gray-400 group-hover:text-primary',
+                                    pathname === item.href ? 'text-[#E91E63]' : 'text-gray-400 group-hover:text-[#E91E63]',
                                     'h-6 w-6 shrink-0'
                                   )}
                                   aria-hidden="true"
@@ -134,7 +135,7 @@ export default function DashboardLayout({
         </Dialog>
       </Transition.Root>
 
-      {/* Sidebar desktop */}
+      {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center gap-x-3">
@@ -156,14 +157,14 @@ export default function DashboardLayout({
                         href={item.href}
                         className={classNames(
                           pathname === item.href
-                            ? 'bg-gray-50 text-primary'
-                            : 'text-gray-700 hover:text-primary hover:bg-gray-50',
+                            ? 'bg-gray-50 text-[#E91E63]'
+                            : 'text-gray-700 hover:text-[#E91E63] hover:bg-gray-50',
                           'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                         )}
                       >
                         <item.icon
                           className={classNames(
-                            pathname === item.href ? 'text-primary' : 'text-gray-400 group-hover:text-primary',
+                            pathname === item.href ? 'text-[#E91E63]' : 'text-gray-400 group-hover:text-[#E91E63]',
                             'h-6 w-6 shrink-0'
                           )}
                           aria-hidden="true"
@@ -179,37 +180,38 @@ export default function DashboardLayout({
         </div>
       </div>
 
-      {/* Content area */}
       <div className="lg:pl-72">
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span className="sr-only">Ouvrir le menu</span>
-            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-          </button>
+        <div className="sticky top-0 z-40 lg:mx-auto lg:max-w-7xl lg:px-8">
+          <div className="flex h-16 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-0 lg:shadow-none">
+            <button
+              type="button"
+              className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <span className="sr-only">Ouvrir le menu</span>
+              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+            </button>
 
-          {/* Separator */}
-          <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
+            {/* Separator */}
+            <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
 
-          <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            {isDemo && (
-              <Link
-                href="/demo"
-                className="flex items-center gap-x-2 text-sm font-medium text-gray-700 hover:text-primary"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-                Retour à la démo
-              </Link>
-            )}
-            <div className="flex flex-1 items-center justify-end gap-x-4 lg:gap-x-6">
-              {/* Notifications */}
-              <NotificationMenu />
-
-              {/* Profile */}
+            <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
               <div className="flex items-center gap-x-4 lg:gap-x-6">
+                <Link
+                  href="/"
+                  className="flex items-center gap-x-2 text-sm font-medium text-gray-700 hover:text-[#E91E63]"
+                >
+                  <ArrowLeftIcon className="h-5 w-5" />
+                  Retour à la page
+                </Link>
+              </div>
+              <div className="flex flex-1 items-center justify-end gap-x-4 lg:gap-x-6">
+                <NotificationMenu />
+
+                {/* Separator */}
+                <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" aria-hidden="true" />
+
+                {/* Profile */}
                 <button
                   type="button"
                   className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
@@ -227,7 +229,7 @@ export default function DashboardLayout({
         </div>
 
         <main className="py-10">
-          <div className="px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {children}
           </div>
         </main>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { CheckIcon, StarIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import Footer from '@/components/Footer';
 
 const testimonials = [
   {
@@ -79,7 +80,7 @@ export default function HomePage() {
                 Connexion
               </button>
               <Link
-                href="/register"
+                href="/inscription"
                 className="bg-[#E91E63] text-white px-4 py-2 rounded-md hover:bg-[#D81B60] transition-colors"
               >
                 Démarrer maintenant
@@ -150,14 +151,11 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/register"
+                href="/inscription"
                 className="w-full sm:w-auto px-8 py-4 bg-[#E91E63] text-white rounded-lg font-semibold hover:bg-[#D81B60] transition-all transform hover:scale-105 shadow-lg"
               >
                 Commencer gratuitement pendant 30 jours
               </Link>
-              <p className="text-sm text-[#1E1E1E]/60">
-                Plus que {Math.floor(countdown / 60)}:{countdown % 60} pour profiter de l'offre
-              </p>
             </div>
           </div>
         </div>
@@ -327,44 +325,60 @@ export default function HomePage() {
       {/* Section Prix avec Garantie */}
       <div className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-800 mb-4">
-              <span className="text-sm font-semibold">Garantie satisfait ou remboursé 30 jours</span>
-            </div>
-            <h2 className="text-3xl font-bold text-[#1E1E1E] mb-4">
-              Investissez dans votre réussite
-            </h2>
-            <p className="text-xl text-[#1E1E1E]/70">
-              Un prix unique pour une solution complète
-            </p>
-          </div>
-
           <div className="max-w-lg mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="bg-[#E91E63] p-8 text-center">
               <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/20 text-white mb-4">
-                <span className="text-sm font-semibold">Économisez 30% - Offre limitée</span>
+                <span className="text-sm font-semibold">Économisez 25% - Offre limitée</span>
               </div>
+
               <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-medium text-white line-through">199,99€</span>
-                <span className="text-5xl font-bold text-white">149,99€</span>
+                <span className="text-2xl font-medium text-white/80 line-through">199€</span>
+                <span className="text-5xl font-bold text-white">149€</span>
                 <span className="text-xl text-white/80">/mois</span>
               </div>
             </div>
             <div className="p-8">
               <ul className="space-y-4">
-                {features.map((feature) => (
-                  <li key={feature.name} className="flex items-center gap-3">
-                    <CheckIcon className="w-5 h-5 text-[#E91E63]" />
-                    <span className="text-[#1E1E1E]">{feature.name}</span>
-                  </li>
-                ))}
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Gestion complète des élèves</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Planning des leçons optimisé</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Suivi des paiements automatisé</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Espace élève personnalisé</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Statistiques avancées</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Support dédié 24/7</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Multi-établissements</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckIcon className="w-5 h-5 text-[#E91E63]" />
+                  <span className="text-[#1E1E1E]">Formation sur site incluse</span>
+                </li>
               </ul>
+
               <div className="mt-8">
                 <Link
-                  href="/register"
+                  href="/inscription"
                   className="block w-full py-4 px-8 bg-[#E91E63] text-white text-center rounded-lg font-semibold hover:bg-[#D81B60] transition-all transform hover:scale-105 shadow-lg"
                 >
-                  Démarrer maintenant
+                  Commencer maintenant
                 </Link>
                 <p className="text-sm text-center text-[#1E1E1E]/60 mt-4">
                   30 jours d'essai gratuit • Sans engagement
@@ -374,6 +388,7 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
