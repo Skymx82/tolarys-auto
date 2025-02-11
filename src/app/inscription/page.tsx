@@ -32,7 +32,27 @@ export default function InscriptionPage() {
     if (step === 1) {
       setStep(2);
     } else if (step === 2) {
-      setStep(3);
+      try {
+        const response = await fetch('/api/inscription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Une erreur est survenue');
+        }
+
+        // Si tout va bien, on passe à l'étape du paiement
+        setStep(3);
+      } catch (error) {
+        console.error('Erreur lors de l\'inscription:', error);
+        alert('Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
+      }
     } else if (step === 3) {
       // Ici on enverra les données au backend
       console.log('Données du formulaire:', formData);

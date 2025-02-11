@@ -5,6 +5,8 @@ import { Toaster } from 'react-hot-toast';
 
 const geist = Geist({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -18,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={`${geist.variable} font-sans`}>
+    <html lang="fr" className={geist.className}>
       <body className="min-h-screen bg-white text-gray-dark">
         <Toaster position="top-right" />
         {children}
