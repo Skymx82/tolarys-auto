@@ -2,226 +2,295 @@
 
 import { useState } from 'react';
 import { 
-  MagnifyingGlassIcon, 
+  MagnifyingGlassIcon,
   PlusIcon,
   ChevronDownIcon,
+  UserIcon,
+  EnvelopeIcon,
+  PhoneIcon,
   CalendarIcon,
-  UserGroupIcon,
-  StarIcon,
-  CheckBadgeIcon,
-  ClockIcon
+  XMarkIcon,
+  AcademicCapIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 
-// Données de test pour les moniteurs
-const instructors = [
+// Types
+interface TimeSlot {
+  start: string;
+  end: string;
+}
+
+interface Schedule {
+  monday: TimeSlot[];
+  tuesday: TimeSlot[];
+  wednesday: TimeSlot[];
+  thursday: TimeSlot[];
+  friday: TimeSlot[];
+  saturday: TimeSlot[];
+}
+
+interface Instructor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialties: string[];
+  schedule: Schedule;
+  rating: number;
+  totalLessons: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const emptySchedule: Schedule = {
+  monday: [],
+  tuesday: [],
+  wednesday: [],
+  thursday: [],
+  friday: [],
+  saturday: []
+};
+
+// Données de test
+const mockInstructors: Instructor[] = [
   {
-    id: 1,
+    id: 'JD001',
     name: 'Jean Dupont',
-    email: 'jean.dupont@tolarys.fr',
-    phone: '06 12 34 56 78',
-    startDate: '01/01/2024',
-    specialties: ['Permis B', 'Conduite accompagnée'],
-    status: 'available',
-    stats: {
-      totalStudents: 42,
-      lessonsThisMonth: 68,
-      successRate: 92,
-      hoursThisWeek: 28
-    },
+    email: 'jean.dupont@auto-ecole.com',
+    phone: '06 11 22 33 44',
+    specialties: ['Code', 'Conduite', 'Conduite accompagnée'],
     schedule: {
-      monday: ['08:00-12:00', '14:00-19:00'],
-      tuesday: ['08:00-12:00', '14:00-19:00'],
-      wednesday: ['08:00-12:00'],
-      thursday: ['08:00-12:00', '14:00-19:00'],
-      friday: ['08:00-12:00', '14:00-19:00'],
-      saturday: ['08:00-12:00']
+      monday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      tuesday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      wednesday: [{ start: '08:00', end: '12:00' }],
+      thursday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      friday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      saturday: [{ start: '08:00', end: '12:00' }]
     },
-    upcomingLessons: [
-      {
-        time: '10:00',
-        student: 'Sophie Martin',
-        type: 'Permis B'
-      },
-      {
-        time: '11:30',
-        student: 'Lucas Bernard',
-        type: 'Conduite accompagnée'
-      }
-    ]
+    rating: 4.8,
+    totalLessons: 245
   },
   {
-    id: 2,
+    id: 'ML001',
     name: 'Marie Lambert',
-    email: 'marie.lambert@tolarys.fr',
-    phone: '06 23 45 67 89',
-    startDate: '15/03/2024',
-    specialties: ['Permis B', 'Code de la route'],
-    status: 'teaching',
-    stats: {
-      totalStudents: 35,
-      lessonsThisMonth: 54,
-      successRate: 88,
-      hoursThisWeek: 25
-    },
+    email: 'marie.lambert@auto-ecole.com',
+    phone: '06 22 33 44 55',
+    specialties: ['Code', 'Conduite'],
     schedule: {
-      monday: ['09:00-12:00', '14:00-18:00'],
-      tuesday: ['09:00-12:00', '14:00-18:00'],
-      wednesday: ['09:00-12:00', '14:00-18:00'],
-      thursday: ['09:00-12:00', '14:00-18:00'],
-      friday: ['09:00-12:00', '14:00-18:00']
+      monday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
+      tuesday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
+      wednesday: [],
+      thursday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
+      friday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
+      saturday: [{ start: '09:00', end: '12:00' }]
     },
-    upcomingLessons: [
-      {
-        time: '14:00',
-        student: 'Emma Petit',
-        type: 'Code de la route'
-      }
-    ]
+    rating: 4.9,
+    totalLessons: 189
+  },
+  {
+    id: 'PB001',
+    name: 'Pierre Bernard',
+    email: 'pierre.bernard@auto-ecole.com',
+    phone: '06 33 44 55 66',
+    specialties: ['Conduite', 'Perfectionnement'],
+    schedule: {
+      monday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      tuesday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      wednesday: [{ start: '08:00', end: '12:00' }],
+      thursday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      friday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
+      saturday: [{ start: '08:00', end: '12:00' }]
+    },
+    rating: 4.7,
+    totalLessons: 156
   }
 ];
 
-const statusColors = {
-  available: 'bg-green-100 text-green-800',
-  teaching: 'bg-blue-100 text-blue-800',
-  break: 'bg-yellow-100 text-yellow-800',
-  off: 'bg-gray-100 text-gray-800'
-};
-
-const statusLabels = {
-  available: 'Disponible',
-  teaching: 'En cours',
-  break: 'Pause',
-  off: 'Absent'
-};
-
-const daysOfWeek = {
-  monday: 'Lundi',
-  tuesday: 'Mardi',
-  wednesday: 'Mercredi',
-  thursday: 'Jeudi',
-  friday: 'Vendredi',
-  saturday: 'Samedi'
-};
-
 export default function InstructorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedInstructor, setSelectedInstructor] = useState(null);
+  const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showNewInstructorModal, setShowNewInstructorModal] = useState(false);
+  const [newInstructor, setNewInstructor] = useState<Partial<Instructor>>({
+    specialties: [],
+    schedule: { ...emptySchedule }
+  });
+  const [instructors, setInstructors] = useState<Instructor[]>(mockInstructors);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const filteredInstructors = instructors.filter(instructor =>
     instructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    instructor.email.toLowerCase().includes(searchTerm.toLowerCase())
+    instructor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    instructor.phone.includes(searchTerm)
   );
+
+  const handleCloseModal = () => {
+    setShowDetails(false);
+    setSelectedInstructor(null);
+  };
+
+  const handleCloseNewInstructorModal = () => {
+    setShowNewInstructorModal(false);
+    setNewInstructor({
+      specialties: [],
+      schedule: { ...emptySchedule }
+    });
+  };
+
+  const handleInstructorClick = (instructor: Instructor) => {
+    setSelectedInstructor(instructor);
+    setShowDetails(true);
+  };
+
+  const handleCreateInstructor = () => {
+    // Validation des champs requis
+    if (!newInstructor.name || !newInstructor.email || !newInstructor.phone) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    // Validation des horaires
+    const schedule = newInstructor.schedule || emptySchedule;
+    const hasValidSchedule = Object.values(schedule).some(
+      (slots: TimeSlot[]) => slots.length > 0 && slots.every(slot => slot.start && slot.end)
+    );
+
+    if (!hasValidSchedule) {
+      alert('Veuillez ajouter au moins un créneau horaire valide');
+      return;
+    }
+
+    // Cette fonction sera implémentée pour créer un nouvel instructeur dans la base de données
+    console.log('Nouvel instructeur:', newInstructor);
+    handleCloseNewInstructorModal();
+  };
+
+  const handleUpdateInstructor = (instructorId: string, updates: Partial<Instructor>) => {
+    // Cette fonction sera implémentée pour mettre à jour un instructeur dans la base de données
+    console.log('Mise à jour de l\'instructeur:', instructorId, updates);
+    handleCloseModal();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* En-tête avec recherche et bouton d'ajout */}
-      <div className="flex items-center justify-between">
-        <div className="flex-1 max-w-lg">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-              placeholder="Rechercher un moniteur..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="relative flex-1">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
           </div>
+          <input
+            type="text"
+            className="block w-full rounded-lg border-0 py-2 pl-10 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+            placeholder="Rechercher un moniteur..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <button
           type="button"
-          className="ml-3 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-opacity-90 focus:outline-none"
+          className="inline-flex items-center gap-x-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          onClick={() => setShowNewInstructorModal(true)}
         >
-          <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+          <PlusIcon className="h-5 w-5" aria-hidden="true" />
           Nouveau moniteur
         </button>
       </div>
 
       {/* Liste des moniteurs */}
-      <div className="bg-white shadow-sm rounded-lg">
-        <ul role="list" className="divide-y divide-gray-200">
+      <div className="overflow-hidden bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+        <ul role="list" className="divide-y divide-gray-100">
           {filteredInstructors.map((instructor) => (
             <li
               key={instructor.id}
-              className="hover:bg-gray-50 cursor-pointer"
-              onClick={() => {
-                setSelectedInstructor(instructor);
-                setShowDetails(true);
-              }}
+              className="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-gray-50 sm:px-6 cursor-pointer"
+              onClick={() => handleInstructorClick(instructor)}
             >
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-primary bg-opacity-10 flex items-center justify-center">
-                        <span className="text-primary font-medium">
-                          {instructor.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
+              <div className="flex min-w-0 gap-x-4">
+                <div className="min-w-0 flex-auto">
+                  <p className="text-sm font-semibold leading-6 text-gray-900">
+                    {instructor.name}
+                  </p>
+                  <div className="mt-1 flex items-center gap-x-4 text-xs leading-5 text-gray-500">
+                    <div className="flex items-center gap-x-1">
+                      <EnvelopeIcon className="h-4 w-4" />
+                      {instructor.email}
                     </div>
-                    <div className="ml-4">
-                      <div className="flex items-center">
-                        <div className="font-medium text-gray-900">{instructor.name}</div>
-                        <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          statusColors[instructor.status]
-                        }`}>
-                          {statusLabels[instructor.status]}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-500">{instructor.email}</div>
+                    <div className="flex items-center gap-x-1">
+                      <PhoneIcon className="h-4 w-4" />
+                      {instructor.phone}
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-6">
-                    {/* Statistiques rapides */}
-                    <div className="flex items-center space-x-4">
-                      <div className="flex flex-col items-center">
-                        <div className="flex items-center">
-                          <UserGroupIcon className="h-5 w-5 text-gray-400" />
-                          <span className="ml-1 text-sm text-gray-900">{instructor.stats.totalStudents}</span>
-                        </div>
-                        <span className="text-xs text-gray-500">Élèves</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <div className="flex items-center">
-                          <StarIcon className="h-5 w-5 text-gray-400" />
-                          <span className="ml-1 text-sm text-gray-900">{instructor.stats.successRate}%</span>
-                        </div>
-                        <span className="text-xs text-gray-500">Réussite</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <div className="flex items-center">
-                          <ClockIcon className="h-5 w-5 text-gray-400" />
-                          <span className="ml-1 text-sm text-gray-900">{instructor.stats.hoursThisWeek}h</span>
-                        </div>
-                        <span className="text-xs text-gray-500">Cette semaine</span>
-                      </div>
-                    </div>
-                    <ChevronDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                 </div>
+              </div>
+              <div className="flex items-center gap-x-4">
+                <div className="hidden sm:flex sm:flex-col sm:items-end">
+                  <p className="flex items-center gap-x-1 text-sm leading-6 text-gray-900">
+                    <AcademicCapIcon className="h-4 w-4" />
+                    {instructor.totalLessons} leçons
+                  </p>
+                  <p className="flex items-center gap-x-1 mt-1 text-xs leading-5 text-gray-500">
+                    <ChartBarIcon className="h-4 w-4" />
+                    {instructor.rating}/5
+                  </p>
+                </div>
+                <ChevronDownIcon className="h-5 w-5 flex-none text-gray-400" aria-hidden="true" />
               </div>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Modal des détails du moniteur */}
+      {/* Modal de détails */}
       {showDetails && selectedInstructor && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity">
-          <div className="fixed inset-0 z-10 overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
+          aria-labelledby="instructor-details-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseModal}
+        >
+          <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
+              <div 
+                className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="absolute right-0 top-0 pr-4 pt-4">
+                  <button
+                    type="button"
+                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                    onClick={handleCloseModal}
+                  >
+                    <span className="sr-only">Fermer</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </div>
                 <div>
                   <div className="mt-3 text-center sm:mt-5">
                     <h3 className="text-lg font-semibold leading-6 text-gray-900">
                       Détails du moniteur
                     </h3>
-                    <div className="mt-8">
-                      {/* Informations personnelles */}
-                      <div className="grid grid-cols-2 gap-4 text-left mb-8">
+                    <div className="mt-4 text-left">
+                      <div className="space-y-4">
+                        {/* Informations de base */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-500">Nom</h4>
                           <p className="mt-1 text-sm text-gray-900">{selectedInstructor.name}</p>
@@ -234,101 +303,307 @@ export default function InstructorsPage() {
                           <h4 className="text-sm font-medium text-gray-500">Téléphone</h4>
                           <p className="mt-1 text-sm text-gray-900">{selectedInstructor.phone}</p>
                         </div>
+
+                        {/* Spécialités */}
                         <div>
-                          <h4 className="text-sm font-medium text-gray-500">Date d'entrée</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedInstructor.startDate}</p>
-                        </div>
-                      </div>
-
-                      {/* Spécialités et statistiques */}
-                      <div className="border-t border-gray-200 pt-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Spécialités */}
-                          <div>
-                            <h4 className="text-base font-medium text-gray-900 mb-4">Spécialités</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedInstructor.specialties.map((specialty, index) => (
-                                <span
-                                  key={index}
-                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary bg-opacity-10 text-primary"
-                                >
-                                  {specialty}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          {/* Statistiques */}
-                          <div>
-                            <h4 className="text-base font-medium text-gray-900 mb-4">Statistiques</h4>
-                            <dl className="grid grid-cols-2 gap-4">
-                              <div>
-                                <dt className="text-sm font-medium text-gray-500">Élèves totaux</dt>
-                                <dd className="mt-1 text-sm text-gray-900">{selectedInstructor.stats.totalStudents}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-sm font-medium text-gray-500">Taux de réussite</dt>
-                                <dd className="mt-1 text-sm text-gray-900">{selectedInstructor.stats.successRate}%</dd>
-                              </div>
-                              <div>
-                                <dt className="text-sm font-medium text-gray-500">Leçons ce mois</dt>
-                                <dd className="mt-1 text-sm text-gray-900">{selectedInstructor.stats.lessonsThisMonth}</dd>
-                              </div>
-                              <div>
-                                <dt className="text-sm font-medium text-gray-500">Heures cette semaine</dt>
-                                <dd className="mt-1 text-sm text-gray-900">{selectedInstructor.stats.hoursThisWeek}h</dd>
-                              </div>
-                            </dl>
+                          <h4 className="text-sm font-medium text-gray-500">Spécialités</h4>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {selectedInstructor.specialties.map((specialty, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
+                              >
+                                {specialty}
+                              </span>
+                            ))}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Horaires */}
-                      <div className="border-t border-gray-200 pt-4 mt-4">
-                        <h4 className="text-base font-medium text-gray-900 mb-4">Horaires</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          {Object.entries(selectedInstructor.schedule).map(([day, hours]) => (
-                            <div key={day} className="flex justify-between items-center">
-                              <span className="text-sm font-medium text-gray-500">{daysOfWeek[day]}</span>
-                              <span className="text-sm text-gray-900">{hours.join(', ')}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Prochaines leçons */}
-                      <div className="border-t border-gray-200 pt-4 mt-4">
-                        <h4 className="text-base font-medium text-gray-900 mb-4">Prochaines leçons</h4>
-                        <ul className="divide-y divide-gray-200">
-                          {selectedInstructor.upcomingLessons.map((lesson, index) => (
-                            <li key={index} className="py-2">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">{lesson.student}</p>
-                                  <p className="text-sm text-gray-500">{lesson.type}</p>
+                        {/* Horaires */}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500">Horaires</h4>
+                          <div className="mt-2 space-y-2">
+                            {(Object.entries({
+                              monday: 'Lundi',
+                              tuesday: 'Mardi',
+                              wednesday: 'Mercredi',
+                              thursday: 'Jeudi',
+                              friday: 'Vendredi',
+                              saturday: 'Samedi'
+                            }) as [keyof Schedule, string][]).map(([day, label]) => (
+                              <div key={day} className="flex items-center justify-between">
+                                <span className="text-sm font-medium">{label}</span>
+                                <div className="text-sm text-gray-500">
+                                  {selectedInstructor.schedule[day].length > 0 ? (
+                                    selectedInstructor.schedule[day].map((slot, index) => (
+                                      <span key={index} className="ml-2">
+                                        {slot.start} - {slot.end}
+                                        {index < selectedInstructor.schedule[day].length - 1 && ', '}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-gray-400">Non disponible</span>
+                                  )}
                                 </div>
-                                <div className="text-sm text-gray-500">{lesson.time}</div>
                               </div>
-                            </li>
-                          ))}
-                        </ul>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Statistiques */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Note moyenne</h4>
+                            <p className="mt-1 text-sm text-gray-900">{selectedInstructor.rating}/5</p>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Total des leçons</h4>
+                            <p className="mt-1 text-sm text-gray-900">{selectedInstructor.totalLessons}</p>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de création d'un nouveau moniteur */}
+      {showNewInstructorModal && (
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
+          aria-labelledby="new-instructor-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseNewInstructorModal}
+        >
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <div 
+                className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="absolute right-0 top-0 pr-4 pt-4">
+                  <button
+                    type="button"
+                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                    onClick={handleCloseNewInstructorModal}
+                  >
+                    <span className="sr-only">Fermer</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </div>
+                <div>
+                  <div className="mt-3 text-center sm:mt-5">
+                    <h3 className="text-lg font-semibold leading-6 text-gray-900">
+                      Nouveau moniteur
+                    </h3>
+                    <div className="mt-4">
+                      <form className="space-y-4">
+                        {/* Nom */}
+                        <div>
+                          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                            Nom
+                          </label>
+                          <input
+                            type="text"
+                            id="name"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            value={newInstructor.name || ''}
+                            onChange={(e) => setNewInstructor({ ...newInstructor, name: e.target.value })}
+                          />
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            id="email"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            value={newInstructor.email || ''}
+                            onChange={(e) => setNewInstructor({ ...newInstructor, email: e.target.value })}
+                          />
+                        </div>
+
+                        {/* Téléphone */}
+                        <div>
+                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                            Téléphone
+                          </label>
+                          <input
+                            type="tel"
+                            id="phone"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            value={newInstructor.phone || ''}
+                            onChange={(e) => setNewInstructor({ ...newInstructor, phone: e.target.value })}
+                          />
+                        </div>
+
+                        {/* Spécialités */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Spécialités
+                          </label>
+                          <div className="mt-2 space-y-2">
+                            {['Code', 'Conduite', 'Conduite accompagnée', 'Perfectionnement'].map((specialty) => (
+                              <label key={specialty} className="inline-flex items-center mr-4">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-gray-300 text-primary focus:ring-primary"
+                                  checked={newInstructor.specialties?.includes(specialty) || false}
+                                  onChange={(e) => {
+                                    const specialties = newInstructor.specialties || [];
+                                    if (e.target.checked) {
+                                      setNewInstructor({
+                                        ...newInstructor,
+                                        specialties: [...specialties, specialty]
+                                      });
+                                    } else {
+                                      setNewInstructor({
+                                        ...newInstructor,
+                                        specialties: specialties.filter(s => s !== specialty)
+                                      });
+                                    }
+                                  }}
+                                />
+                                <span className="ml-2 text-sm text-gray-700">{specialty}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Horaires */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Horaires de travail
+                          </label>
+                          <div className="mt-2 space-y-4">
+                            {(Object.entries({
+                              monday: 'Lundi',
+                              tuesday: 'Mardi',
+                              wednesday: 'Mercredi',
+                              thursday: 'Jeudi',
+                              friday: 'Vendredi',
+                              saturday: 'Samedi'
+                            }) as [keyof Schedule, string][]).map(([day, label]) => (
+                              <div key={day} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-gray-700">{label}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedSchedule = {
+                                        ...(newInstructor.schedule || emptySchedule)
+                                      };
+                                      updatedSchedule[day] = [
+                                        ...(updatedSchedule[day] || []),
+                                        { start: '', end: '' }
+                                      ];
+                                      setNewInstructor({
+                                        ...newInstructor,
+                                        schedule: updatedSchedule
+                                      });
+                                    }}
+                                    className="inline-flex items-center text-sm text-primary hover:text-primary/80"
+                                  >
+                                    <PlusIcon className="h-4 w-4 mr-1" />
+                                    Ajouter un créneau
+                                  </button>
+                                </div>
+                                {newInstructor.schedule?.[day]?.map((slot, index) => (
+                                  <div key={index} className="flex items-center space-x-2">
+                                    <input
+                                      type="time"
+                                      value={slot.start}
+                                      onChange={(e) => {
+                                        const updatedSchedule = {
+                                          ...(newInstructor.schedule || emptySchedule)
+                                        };
+                                        const updatedSlots = [...updatedSchedule[day]];
+                                        updatedSlots[index] = {
+                                          ...updatedSlots[index],
+                                          start: e.target.value
+                                        };
+                                        updatedSchedule[day] = updatedSlots;
+                                        setNewInstructor({
+                                          ...newInstructor,
+                                          schedule: updatedSchedule
+                                        });
+                                      }}
+                                      className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                      required
+                                    />
+                                    <span>à</span>
+                                    <input
+                                      type="time"
+                                      value={slot.end}
+                                      onChange={(e) => {
+                                        const updatedSchedule = {
+                                          ...(newInstructor.schedule || emptySchedule)
+                                        };
+                                        const updatedSlots = [...updatedSchedule[day]];
+                                        updatedSlots[index] = {
+                                          ...updatedSlots[index],
+                                          end: e.target.value
+                                        };
+                                        updatedSchedule[day] = updatedSlots;
+                                        setNewInstructor({
+                                          ...newInstructor,
+                                          schedule: updatedSchedule
+                                        });
+                                      }}
+                                      className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                      required
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updatedSchedule = {
+                                          ...(newInstructor.schedule || emptySchedule)
+                                        };
+                                        updatedSchedule[day] = updatedSchedule[day].filter(
+                                          (_, i) => i !== index
+                                        );
+                                        setNewInstructor({
+                                          ...newInstructor,
+                                          schedule: updatedSchedule
+                                        });
+                                      }}
+                                      className="text-red-500 hover:text-red-700"
+                                      aria-label="Supprimer le créneau"
+                                    >
+                                      <XMarkIcon className="h-5 w-5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </form>
                     </div>
                   </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 sm:col-start-2"
-                    onClick={() => setShowDetails(false)}
+                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
+                    onClick={handleCreateInstructor}
                   >
-                    Modifier
+                    Créer
                   </button>
                   <button
                     type="button"
                     className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
-                    onClick={() => setShowDetails(false)}
+                    onClick={handleCloseNewInstructorModal}
                   >
-                    Fermer
+                    Annuler
                   </button>
                 </div>
               </div>

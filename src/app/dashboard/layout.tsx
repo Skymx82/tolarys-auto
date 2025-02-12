@@ -21,13 +21,13 @@ import {
 } from '@heroicons/react/24/outline';
 
 const navigation = [
-  { name: 'Tableau de bord', href: '/dashboard-demo', icon: HomeIcon },
-  { name: 'Élèves', href: '/dashboard-demo/students', icon: AcademicCapIcon },
-  { name: 'Moniteurs', href: '/dashboard-demo/instructors', icon: UserGroupIcon },
-  { name: 'Planning', href: '/dashboard-demo/planning', icon: CalendarIcon },
-  { name: 'Examens', href: '/dashboard-demo/exams', icon: UsersIcon },
-  { name: 'Paiements', href: '/dashboard-demo/payments', icon: CreditCardIcon },
-  { name: 'Paramètres', href: '/dashboard-demo/settings', icon: Cog6ToothIcon },
+  { name: 'Tableau de bord', href: '/dashboard', icon: HomeIcon },
+  { name: 'Élèves', href: '/dashboard/students', icon: AcademicCapIcon },
+  { name: 'Moniteurs', href: '/dashboard/instructors', icon: UserGroupIcon },
+  { name: 'Planning', href: '/dashboard/planning', icon: CalendarIcon },
+  { name: 'Examens', href: '/dashboard/exams', icon: UsersIcon },
+  { name: 'Paiements', href: '/dashboard/payments', icon: CreditCardIcon },
+  { name: 'Paramètres', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ];
 
 function classNames(...classes: string[]) {
@@ -195,15 +195,6 @@ export default function DashboardLayout({
           <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            {isDemo && (
-              <Link
-                href="/demo"
-                className="flex items-center gap-x-2 text-sm font-medium text-gray-700 hover:text-primary"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-                Retour à la démo
-              </Link>
-            )}
             <div className="flex flex-1 items-center justify-end gap-x-4 lg:gap-x-6">
               {/* Notifications */}
               <NotificationMenu />

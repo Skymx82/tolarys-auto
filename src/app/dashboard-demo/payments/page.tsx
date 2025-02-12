@@ -122,7 +122,11 @@ export default function PaymentsPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [showNewPaymentModal, setShowNewPaymentModal] = useState<boolean>(false);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [newPayment, setNewPayment] = useState<Partial<Payment>>({
+    status: 'pending'
+  });
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,6 +139,11 @@ export default function PaymentsPage() {
   const handleCloseModal = () => {
     setShowDetails(false);
     setSelectedPayment(null);
+  };
+
+  const handleCloseNewPaymentModal = () => {
+    setShowNewPaymentModal(false);
+    setNewPayment({ status: 'pending' });
   };
 
   const handlePaymentClick = (payment: Payment) => {
@@ -179,6 +188,7 @@ export default function PaymentsPage() {
           <button
             type="button"
             className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-opacity-90 focus:outline-none"
+            onClick={() => setShowNewPaymentModal(true)}
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
             Nouveau paiement
@@ -244,103 +254,242 @@ export default function PaymentsPage() {
 
       {/* Modal des détails du paiement */}
       {showDetails && selectedPayment && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity">
-          <div className="fixed inset-0 z-10 overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
+          aria-labelledby="payment-details-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseModal}
+        >
+          <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
+              <div 
+                className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div>
                   <div className="mt-3 text-center sm:mt-5">
                     <h3 className="text-lg font-semibold leading-6 text-gray-900">
                       Détails du paiement
                     </h3>
-                    <div className="mt-8 text-left">
-                      {/* En-tête avec statut */}
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center">
-                          <DocumentTextIcon className="h-6 w-6 text-gray-400 mr-2" />
-                          <span className="text-lg font-medium">{selectedPayment.invoice}</span>
+                    <div className="mt-4 text-left">
+                      <div className="space-y-4">
+                        {/* Montant et statut */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <BanknotesIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-lg font-medium text-gray-900">
+                              {formatCurrency(selectedPayment.amount)}
+                            </span>
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedPayment.status]}`}>
+                            {statusLabels[selectedPayment.status]}
+                          </span>
                         </div>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          statusColors[selectedPayment.status]
-                        }`}>
-                          {statusLabels[selectedPayment.status]}
-                        </span>
-                      </div>
 
-                      {/* Informations principales */}
-                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        {/* Informations de l'étudiant */}
                         <div>
-                          <h4 className="text-sm font-medium text-gray-500">Élève</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedPayment.student.name}</p>
-                          <p className="text-sm text-gray-500">ID: {selectedPayment.student.id}</p>
+                          <h4 className="text-sm font-medium text-gray-500">Étudiant</h4>
+                          <div className="mt-1 flex items-center">
+                            <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <div>
+                              <p className="text-sm text-gray-900">{selectedPayment.student.name}</p>
+                              <p className="text-sm text-gray-500">ID: {selectedPayment.student.id}</p>
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Description */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-500">Description</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedPayment.description}</p>
-                        </div>
-                      </div>
-
-                      {/* Montants */}
-                      <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-500">Montant total</h4>
-                            <p className="text-lg font-medium text-gray-900">
-                              {formatCurrency(selectedPayment.amount)}
-                            </p>
+                          <div className="mt-1 flex items-center">
+                            <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{selectedPayment.description}</span>
                           </div>
-                          {selectedPayment.paidAmount && (
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-500">Montant payé</h4>
-                              <p className="text-lg font-medium text-gray-900">
-                                {formatCurrency(selectedPayment.paidAmount)}
-                              </p>
-                            </div>
-                          )}
                         </div>
-                      </div>
 
-                      {/* Dates et méthode de paiement */}
-                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        {/* Numéro de facture */}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500">Facture</h4>
+                          <div className="mt-1 flex items-center">
+                            <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{selectedPayment.invoice}</span>
+                          </div>
+                        </div>
+
+                        {/* Date d'échéance */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-500">Date d'échéance</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedPayment.dueDate}</p>
+                          <div className="mt-1 flex items-center">
+                            <CalendarIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{selectedPayment.dueDate}</span>
+                          </div>
                         </div>
-                        {selectedPayment.paidDate && (
+
+                        {/* Méthode de paiement */}
+                        {selectedPayment.method && (
                           <div>
-                            <h4 className="text-sm font-medium text-gray-500">Date de paiement</h4>
-                            <p className="mt-1 text-sm text-gray-900">{selectedPayment.paidDate}</p>
+                            <h4 className="text-sm font-medium text-gray-500">Méthode de paiement</h4>
+                            <div className="mt-1 flex items-center">
+                              <CreditCardIcon className="h-5 w-5 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">{methodLabels[selectedPayment.method]}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Montant payé et date (si applicable) */}
+                        {selectedPayment.paidAmount && selectedPayment.paidDate && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Paiement effectué</h4>
+                            <div className="mt-1 flex items-center">
+                              <CheckCircleIcon className="h-5 w-5 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">
+                                {formatCurrency(selectedPayment.paidAmount)} le {selectedPayment.paidDate}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
-
-                      {selectedPayment.method && (
-                        <div className="mb-6">
-                          <h4 className="text-sm font-medium text-gray-500">Méthode de paiement</h4>
-                          <p className="mt-1 text-sm text-gray-900">{methodLabels[selectedPayment.method]}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                  {(selectedPayment.status === 'pending' || selectedPayment.status === 'partial' || selectedPayment.status === 'overdue') && (
-                    <button
-                      type="button"
-                      className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 sm:col-start-2"
-                      onClick={handleCloseModal}
-                    >
-                      Enregistrer un paiement
-                    </button>
-                  )}
                   <button
                     type="button"
-                    className={`mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 ${
-                      selectedPayment.status === 'paid' ? 'sm:col-span-2' : 'sm:col-start-1'
-                    } sm:mt-0`}
+                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
                     onClick={handleCloseModal}
                   >
                     Fermer
+                  </button>
+                  {selectedPayment.status !== 'paid' && (
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
+                      onClick={handleCloseModal}
+                    >
+                      Marquer comme payé
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de création d'un nouveau paiement */}
+      {showNewPaymentModal && (
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
+          aria-labelledby="new-payment-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseNewPaymentModal}
+        >
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <div 
+                className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div>
+                  <div className="mt-3 text-center sm:mt-5">
+                    <h3 className="text-lg font-semibold leading-6 text-gray-900">
+                      Nouveau Paiement
+                    </h3>
+                    <div className="mt-4">
+                      <form className="space-y-4">
+                        {/* Étudiant */}
+                        <div>
+                          <label htmlFor="student" className="block text-sm font-medium text-gray-700">
+                            Étudiant
+                          </label>
+                          <input
+                            type="text"
+                            id="student"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            placeholder="Nom de l'étudiant"
+                          />
+                        </div>
+
+                        {/* Montant */}
+                        <div>
+                          <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                            Montant
+                          </label>
+                          <div className="relative mt-1 rounded-md shadow-sm">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                              <span className="text-gray-500 sm:text-sm">€</span>
+                            </div>
+                            <input
+                              type="number"
+                              id="amount"
+                              className="block w-full rounded-md border-gray-300 pl-7 pr-12 focus:border-primary focus:ring-primary sm:text-sm"
+                              placeholder="0.00"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                            Description
+                          </label>
+                          <input
+                            type="text"
+                            id="description"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            placeholder="Ex: Formation permis B - Pack 20h"
+                          />
+                        </div>
+
+                        {/* Date d'échéance */}
+                        <div>
+                          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+                            Date d'échéance
+                          </label>
+                          <input
+                            type="date"
+                            id="dueDate"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                          />
+                        </div>
+
+                        {/* Méthode de paiement */}
+                        <div>
+                          <label htmlFor="method" className="block text-sm font-medium text-gray-700">
+                            Méthode de paiement
+                          </label>
+                          <select
+                            id="method"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                          >
+                            <option value="">Sélectionner une méthode</option>
+                            <option value="card">Carte bancaire</option>
+                            <option value="cash">Espèces</option>
+                            <option value="transfer">Virement</option>
+                            <option value="check">Chèque</option>
+                          </select>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
+                    onClick={handleCloseNewPaymentModal}
+                  >
+                    Créer
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
+                    onClick={handleCloseNewPaymentModal}
+                  >
+                    Annuler
                   </button>
                 </div>
               </div>

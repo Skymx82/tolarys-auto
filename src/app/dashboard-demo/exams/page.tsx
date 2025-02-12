@@ -126,7 +126,12 @@ export default function ExamsPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [showNewExamModal, setShowNewExamModal] = useState<boolean>(false);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [newExam, setNewExam] = useState<Partial<Exam>>({
+    type: 'code',
+    status: 'upcoming'
+  });
 
   const filteredExams = exams.filter(exam => {
     const matchesSearch = exam.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -143,6 +148,11 @@ export default function ExamsPage() {
   const handleCloseModal = () => {
     setShowDetails(false);
     setSelectedExam(null);
+  };
+
+  const handleCloseNewExamModal = () => {
+    setShowNewExamModal(false);
+    setNewExam({ type: 'code', status: 'upcoming' });
   };
 
   const handleExamClick = (exam: Exam) => {
@@ -184,6 +194,7 @@ export default function ExamsPage() {
           <button
             type="button"
             className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-opacity-90 focus:outline-none"
+            onClick={() => setShowNewExamModal(true)}
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
             Nouvel examen
@@ -247,109 +258,272 @@ export default function ExamsPage() {
 
       {/* Modal des détails de l'examen */}
       {showDetails && selectedExam && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity">
-          <div className="fixed inset-0 z-10 overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
+          aria-labelledby="exam-details-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseModal}
+        >
+          <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
+              <div 
+                className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div>
                   <div className="mt-3 text-center sm:mt-5">
                     <h3 className="text-lg font-semibold leading-6 text-gray-900">
                       Détails de l'examen
                     </h3>
-                    <div className="mt-8 text-left">
-                      {/* Type d'examen et statut */}
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center">
-                          {selectedExam.type === 'code' ? (
-                            <AcademicCapIcon className="h-6 w-6 text-blue-600 mr-2" />
-                          ) : (
-                            <TruckIcon className="h-6 w-6 text-green-600 mr-2" />
-                          )}
-                          <span className="text-lg font-medium">{examTypeLabels[selectedExam.type]}</span>
+                    <div className="mt-4 text-left">
+                      <div className="space-y-4">
+                        {/* Type d'examen et statut */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <AcademicCapIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {examTypeLabels[selectedExam.type]}
+                            </span>
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[selectedExam.status]}`}>
+                            {statusLabels[selectedExam.status]}
+                          </span>
                         </div>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          statusColors[selectedExam.status]
-                        }`}>
-                          {statusLabels[selectedExam.status]}
-                        </span>
-                      </div>
 
-                      {/* Informations principales */}
-                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        {/* Informations de l'étudiant */}
                         <div>
-                          <h4 className="text-sm font-medium text-gray-500">Élève</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedExam.student.name}</p>
-                          <p className="text-sm text-gray-500">ID: {selectedExam.student.id}</p>
-                          <p className="text-sm text-gray-500">Tentative: {selectedExam.student.attempts}</p>
+                          <h4 className="text-sm font-medium text-gray-500">Étudiant</h4>
+                          <div className="mt-1">
+                            <p className="text-sm text-gray-900">{selectedExam.student.name}</p>
+                            <p className="text-sm text-gray-500">ID: {selectedExam.student.id}</p>
+                            <p className="text-sm text-gray-500">Tentative: {selectedExam.student.attempts}</p>
+                          </div>
                         </div>
+
+                        {/* Date et heure */}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500">Date et heure</h4>
+                          <div className="mt-1 flex items-center">
+                            <CalendarIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{selectedExam.date} à {selectedExam.time}</span>
+                          </div>
+                        </div>
+
+                        {/* Lieu */}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500">Lieu</h4>
+                          <div className="mt-1 flex items-center">
+                            <MapPinIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{selectedExam.location}</span>
+                          </div>
+                        </div>
+
+                        {/* Moniteur */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-500">Moniteur</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedExam.instructor}</p>
-                        </div>
-                      </div>
-
-                      {/* Date et lieu */}
-                      <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex items-center">
-                            <CalendarIcon className="h-5 w-5 text-gray-400 mr-2" />
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-500">Date et heure</h4>
-                              <p className="text-sm text-gray-900">{selectedExam.date} à {selectedExam.time}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <MapPinIcon className="h-5 w-5 text-gray-400 mr-2" />
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-500">Lieu</h4>
-                              <p className="text-sm text-gray-900">{selectedExam.location}</p>
-                            </div>
+                          <div className="mt-1 flex items-center">
+                            <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{selectedExam.instructor}</span>
                           </div>
                         </div>
+
+                        {/* Véhicule (si examen pratique) */}
+                        {selectedExam.type === 'practical' && selectedExam.vehicle && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Véhicule</h4>
+                            <div className="mt-1 flex items-center">
+                              <TruckIcon className="h-5 w-5 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">{selectedExam.vehicle}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Score (si terminé) */}
+                        {selectedExam.score && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Score</h4>
+                            <div className="mt-1 flex items-center">
+                              <ChartBarIcon className="h-5 w-5 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">{selectedExam.score}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Feedback (si échoué) */}
+                        {selectedExam.feedback && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Commentaires</h4>
+                            <div className="mt-1">
+                              <p className="text-sm text-gray-900">{selectedExam.feedback}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Informations spécifiques selon le type et le statut */}
-                      {selectedExam.type === 'practical' && selectedExam.vehicle && (
-                        <div className="mb-6">
-                          <h4 className="text-sm font-medium text-gray-500">Véhicule</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedExam.vehicle}</p>
-                        </div>
-                      )}
-
-                      {selectedExam.status === 'passed' && selectedExam.score && (
-                        <div className="mb-6">
-                          <h4 className="text-sm font-medium text-gray-500">Score</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedExam.score}</p>
-                        </div>
-                      )}
-
-                      {selectedExam.status === 'failed' && selectedExam.feedback && (
-                        <div className="mb-6">
-                          <h4 className="text-sm font-medium text-gray-500">Retour d'évaluation</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedExam.feedback}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
+                    onClick={handleCloseModal}
+                  >
+                    Fermer
+                  </button>
                   {selectedExam.status === 'upcoming' && (
                     <button
                       type="button"
-                      className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 sm:col-start-2"
+                      className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
                       onClick={handleCloseModal}
                     >
                       Modifier
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de création d'un nouvel examen */}
+      {showNewExamModal && (
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
+          aria-labelledby="new-exam-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseNewExamModal}
+        >
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <div 
+                className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div>
+                  <div className="mt-3 text-center sm:mt-5">
+                    <h3 className="text-lg font-semibold leading-6 text-gray-900">
+                      Nouvel Examen
+                    </h3>
+                    <div className="mt-4">
+                      <form className="space-y-4">
+                        {/* Type d'examen */}
+                        <div>
+                          <label htmlFor="exam-type" className="block text-sm font-medium text-gray-700">
+                            Type d'examen
+                          </label>
+                          <select
+                            id="exam-type"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            value={newExam.type}
+                            onChange={(e) => setNewExam({ ...newExam, type: e.target.value as ExamType })}
+                          >
+                            <option value="code">Code de la route</option>
+                            <option value="practical">Conduite</option>
+                          </select>
+                        </div>
+
+                        {/* Étudiant */}
+                        <div>
+                          <label htmlFor="student" className="block text-sm font-medium text-gray-700">
+                            Étudiant
+                          </label>
+                          <input
+                            type="text"
+                            id="student"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            placeholder="Nom de l'étudiant"
+                          />
+                        </div>
+
+                        {/* Date et heure */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              id="date"
+                              className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="time" className="block text-sm font-medium text-gray-700">
+                              Heure
+                            </label>
+                            <input
+                              type="time"
+                              id="time"
+                              className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Centre d'examen */}
+                        <div>
+                          <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                            Centre d'examen
+                          </label>
+                          <input
+                            type="text"
+                            id="location"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            placeholder="Adresse du centre d'examen"
+                          />
+                        </div>
+
+                        {/* Moniteur */}
+                        <div>
+                          <label htmlFor="instructor" className="block text-sm font-medium text-gray-700">
+                            Moniteur
+                          </label>
+                          <select
+                            id="instructor"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                          >
+                            <option value="">Sélectionner un moniteur</option>
+                            <option value="jean-dupont">Jean Dupont</option>
+                            <option value="marie-lambert">Marie Lambert</option>
+                          </select>
+                        </div>
+
+                        {/* Véhicule (uniquement pour examen pratique) */}
+                        {newExam.type === 'practical' && (
+                          <div>
+                            <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700">
+                              Véhicule
+                            </label>
+                            <select
+                              id="vehicle"
+                              className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            >
+                              <option value="">Sélectionner un véhicule</option>
+                              <option value="peugeot-208">Peugeot 208 - AB-123-CD</option>
+                              <option value="renault-clio">Renault Clio - EF-456-GH</option>
+                            </select>
+                          </div>
+                        )}
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className={`mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 ${
-                      selectedExam.status === 'upcoming' ? 'sm:col-start-1' : 'sm:col-span-2'
-                    } sm:mt-0`}
-                    onClick={handleCloseModal}
+                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
+                    onClick={handleCloseNewExamModal}
                   >
-                    Fermer
+                    Créer
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
+                    onClick={handleCloseNewExamModal}
+                  >
+                    Annuler
                   </button>
                 </div>
               </div>
