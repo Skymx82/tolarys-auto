@@ -1,244 +1,162 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import { EventClickArg, EventInput, EventApi } from '@fullcalendar/core';
+import { EventClickArg, EventApi } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import frLocale from '@fullcalendar/core/locales/fr';
-import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import './styles.css';
+import { 
+  DbLesson, 
+  DbInstructor, 
+  DbVehicle, 
+  DbStudent,
+  CalendarEvent,
+  PlanningFilters,
+  PlanningStats 
+} from './types';
 
-// Types
-type EventTypeKey = 'practical' | 'theory' | 'exam';
-
-interface EventType {
-  name: string;
-  color: string;
-}
-
-interface ExtendedEventProps {
-  type: EventTypeKey;
-  student?: string;
-  instructor: string;
-  vehicle?: string;
-  students?: string[];
-  examType?: string;
-}
-
-interface CalendarEvent extends EventInput {
-  id: string;
-  title: string;
-  start: Date | string;
-  end: Date | string;
-  backgroundColor: string;
-  classNames: string[];
-  extendedProps: ExtendedEventProps;
-}
-
-interface Filter {
-  id: EventTypeKey | 'all';
-  name: string;
-}
-
-interface Instructor {
-  id: string;
-  name: string;
-}
-
-// Constants
-const eventTypes: Record<EventTypeKey, EventType> = {
-  practical: { name: 'Leçon pratique', color: '#E91E63' },
-  theory: { name: 'Cours de code', color: '#2196F3' },
-  exam: { name: 'Examen', color: '#4CAF50' },
-};
-
-const events: CalendarEvent[] = [
-  {
-    id: '1',
-    title: 'Leçon - Sophie Martin',
-    start: '2025-02-11T10:00:00',
-    end: '2025-02-11T11:00:00',
-    backgroundColor: eventTypes.practical.color,
-    classNames: ['practical'],
-    extendedProps: {
-      type: 'practical',
-      student: 'Sophie Martin',
-      instructor: 'Jean Dupont',
-      vehicle: 'Peugeot 208 - AB-123-CD'
-    }
-  },
-  {
-    id: '2',
-    title: 'Cours Code - Groupe A',
-    start: '2025-02-11T14:00:00',
-    end: '2025-02-11T16:00:00',
-    backgroundColor: eventTypes.theory.color,
-    classNames: ['theory'],
-    extendedProps: {
-      type: 'theory',
-      instructor: 'Marie Lambert',
-      students: ['Lucas Bernard', 'Emma Petit', 'Thomas Richard']
-    }
-  },
-  {
-    id: '3',
-    title: 'Examen Pratique - Emma Petit',
-    start: '2025-02-12T09:00:00',
-    end: '2025-02-12T10:00:00',
-    backgroundColor: eventTypes.exam.color,
-    classNames: ['exam'],
-    extendedProps: {
-      type: 'exam',
-      student: 'Emma Petit',
-      instructor: 'Jean Dupont',
-      examType: 'Permis B'
-    }
-  }
-];
-
-const filters: Filter[] = [
-  { id: 'all', name: 'Tout' },
-  { id: 'practical', name: 'Leçons pratiques' },
-  { id: 'theory', name: 'Cours de code' },
-  { id: 'exam', name: 'Examens' },
-];
-
-const instructors: Instructor[] = [
-  { id: '1', name: 'Jean Dupont' },
-  { id: '2', name: 'Marie Lambert' },
-  { id: '3', name: 'Pierre Martin' },
-];
 
 export default function PlanningPage() {
-  const [selectedFilter, setSelectedFilter] = useState<Filter['id']>('all');
-  const [selectedInstructor, setSelectedInstructor] = useState<string>('all');
-  const [showEventDetails, setShowEventDetails] = useState<boolean>(false);
-  const [selectedEvent, setSelectedEvent] = useState<EventApi | null>(null);
-  const [showNewLessonModal, setShowNewLessonModal] = useState<boolean>(false);
-  const [newLessonType, setNewLessonType] = useState<EventTypeKey>('practical');
+  // États pour les données
+  const [lessons, setLessons] = useState<DbLesson[]>([]);
+  const [instructors, setInstructors] = useState<DbInstructor[]>([]);
+  const [vehicles, setVehicles] = useState<DbVehicle[]>([]);
+  const [students, setStudents] = useState<DbStudent[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [stats, setStats] = useState<PlanningStats | null>(null);
+  
+  // États pour les filtres
+  const [filters, setFilters] = useState<PlanningFilters>({
+    date: new Date(),
+    view: 'week',
+    instructors: [],
+    vehicles: [],
+    lessonTypes: ['driving', 'theory'],
+    status: ['confirmed', 'pending']
+  });
 
+  // États pour l'UI
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventApi | null>(null);
+  const [showEventDetails, setShowEventDetails] = useState(false);
+  const [showNewLessonModal, setShowNewLessonModal] = useState(false);
+
+  // Effet pour charger les données initiales
+  useEffect(() => {
+    fetchPlanningData();
+  }, []);
+
+  // Fonction pour charger les données
+  const fetchPlanningData = async () => {
+    try {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fonction pour convertir les leçons en événements du calendrier
+  const convertToCalendarEvents = (lessons: DbLesson[]): CalendarEvent[] => {
+    return lessons.map(lesson => ({
+      id: lesson.id,
+      title: `${lesson.type === 'driving' ? 'Conduite' : 'Code'} - ${lesson.student_name}`,
+      start: new Date(lesson.start_time),
+      end: new Date(lesson.end_time),
+      groupId: lesson.instructor_id, // Utiliser l'ID de l'instructeur comme groupId
+      color: lesson.color || (lesson.type === 'driving' ? '#E91E63' : '#2196F3'),
+      status: lesson.status,
+      type: lesson.type,
+      student: {
+        id: lesson.student_id,
+        name: lesson.student_name
+      },
+      instructor: {
+        id: lesson.instructor_id,
+        name: lesson.instructor_name
+      },
+      vehicle: lesson.vehicle_id ? {
+        id: lesson.vehicle_id,
+        name: lesson.vehicle_name || ''
+      } : undefined,
+      location: lesson.location,
+      notes: lesson.notes,
+      extendedProps: {
+        instructorName: lesson.instructor_name,
+        vehicleName: lesson.vehicle_name
+      }
+    }));
+  };
+
+  // Gestionnaires d'événements
   const handleEventClick = (clickInfo: EventClickArg) => {
     setSelectedEvent(clickInfo.event);
     setShowEventDetails(true);
   };
 
-  const closeModal = () => {
-    setShowEventDetails(false);
-    setSelectedEvent(null);
+  const handleNewLesson = async (lessonData: Partial<DbLesson>) => {
+    try {
+      // TODO: Implémenter la création de leçon dans la base de données
+      closeNewLessonModal();
+      await fetchPlanningData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création de la leçon');
+    }
   };
 
   const closeNewLessonModal = () => {
     setShowNewLessonModal(false);
-    setNewLessonType('practical');
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedFilter(e.target.value as Filter['id']);
-  };
-
-  const filteredEvents = events.filter(event => {
-    if (selectedFilter !== 'all' && event.extendedProps.type !== selectedFilter) return false;
-    if (selectedInstructor !== 'all' && event.extendedProps.instructor !== selectedInstructor) return false;
-    return true;
-  });
-
-  const formatEventDate = (date: string | Date): string => {
-    try {
-      const eventDate = typeof date === 'string' ? new Date(date) : date;
-      if (isNaN(eventDate.getTime())) {
-        throw new Error('Invalid date');
-      }
-      return eventDate.toLocaleDateString('fr-FR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Date invalide';
-    }
-  };
-
-  const formatEventTime = (date: string | Date): string => {
-    try {
-      const eventDate = typeof date === 'string' ? new Date(date) : date;
-      if (isNaN(eventDate.getTime())) {
-        throw new Error('Invalid date');
-      }
-      return eventDate.toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-    } catch (error) {
-      console.error('Error formatting time:', error);
-      return '--:--';
-    }
+  const closeEventDetailsModal = () => {
+    setShowEventDetails(false);
+    setSelectedEvent(null);
   };
 
   return (
-    <div className="space-y-6">
-      {/* En-tête avec filtres et bouton d'ajout */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <FunnelIcon className="h-5 w-5 text-gray-dark" aria-hidden="true" />
-            <label htmlFor="event-type-filter" className="sr-only">Filtrer par type d'événement</label>
-            <select
-              id="event-type-filter"
-              value={selectedFilter}
-              onChange={handleFilterChange}
-              className="rounded-md border-gray-300 py-1.5 text-gray-dark focus:border-primary focus:ring-primary sm:text-sm"
-            >
-              {filters.map((filter) => (
-                <option key={filter.id} value={filter.id}>
-                  {filter.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <label htmlFor="instructor-filter" className="sr-only">Filtrer par moniteur</label>
-          <select
-            id="instructor-filter"
-            value={selectedInstructor}
-            onChange={(e) => setSelectedInstructor(e.target.value)}
-            className="rounded-md border-gray-300 py-1.5 text-gray-dark focus:border-primary focus:ring-primary sm:text-sm"
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* En-tête avec filtres et statistiques */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold text-gray-900">Planning</h1>
+          <button
+            onClick={() => setShowNewLessonModal(true)}
+            className="px-4 py-2 bg-[#E91E63] text-white rounded-lg hover:bg-[#D81B60] transition-colors"
           >
-            <option value="all">Tous les moniteurs</option>
-            {instructors.map((instructor) => (
-              <option key={instructor.id} value={instructor.name}>
-                {instructor.name}
-              </option>
-            ))}
-          </select>
+            <PlusIcon className="h-5 w-5 inline-block mr-2" />
+            Nouvelle leçon
+          </button>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-          onClick={() => setShowNewLessonModal(true)}
-          aria-label="Ajouter une nouvelle leçon"
-        >
-          <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-          Nouvelle leçon
-        </button>
+
+        {/* Filtres */}
+        <div className="mt-4 flex gap-4">
+          {/* TODO: Ajouter les filtres */}
+        </div>
+
+        {/* Statistiques */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* TODO: Ajouter les statistiques */}
+        </div>
       </div>
 
       {/* Calendrier */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
           initialView="timeGridWeek"
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            right: 'timeGridWeek,timeGridDay,dayGridMonth,listWeek'
           }}
           locale={frLocale}
-          events={filteredEvents}
+          events={calendarEvents}
           eventClick={handleEventClick}
           slotMinTime="08:00:00"
           slotMaxTime="20:00:00"
@@ -249,27 +167,22 @@ export default function PlanningPage() {
           stickyHeaderDates={true}
           nowIndicator={true}
           dayMaxEvents={true}
-          eventTimeFormat={{
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }}
-          businessHours={{
-            daysOfWeek: [1, 2, 3, 4, 5, 6],
-            startTime: '08:00',
-            endTime: '20:00',
-          }}
+          eventContent={renderEventContent}
+          eventGroupSet={instructors.map(instructor => ({
+            groupId: instructor.id,
+            title: `${instructor.first_name} ${instructor.last_name}`
+          }))}
         />
       </div>
 
-      {/* Modal des détails de l'événement */}
+      {/* Modals */}
       {showEventDetails && selectedEvent && (
         <div 
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
           aria-labelledby="modal-title"
           role="dialog"
           aria-modal="true"
-          onClick={closeModal}
+          onClick={closeEventDetailsModal}
         >
           <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
@@ -279,77 +192,86 @@ export default function PlanningPage() {
               >
                 <div>
                   <div className="mt-3 text-center sm:mt-5">
-                    <h3 id="modal-title" className="text-lg font-semibold leading-6 text-gray-dark">
+                    <h3 
+                      className="text-lg font-semibold leading-6 text-gray-900"
+                      id="modal-title"
+                    >
                       {selectedEvent.title}
                     </h3>
-                    <div className="mt-4 text-left">
-                      <p className="text-sm text-gray-dark">
+                    <div className="mt-4 text-left space-y-2">
+                      <p className="text-sm text-gray-600">
                         <span className="font-semibold">Date:</span>{' '}
-                        {formatEventDate(selectedEvent.startStr)}
+                        {new Date(selectedEvent.start).toLocaleDateString('fr-FR', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
                       </p>
-                      <p className="text-sm text-gray-dark">
+                      <p className="text-sm text-gray-600">
                         <span className="font-semibold">Horaire:</span>{' '}
-                        {formatEventTime(selectedEvent.startStr)} - {formatEventTime(selectedEvent.endStr)}
+                        {new Date(selectedEvent.start).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })} - {new Date(selectedEvent.end).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </p>
-                      {selectedEvent.extendedProps.type === 'practical' && (
-                        <>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Élève:</span>{' '}
-                            {selectedEvent.extendedProps.student}
-                          </p>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Moniteur:</span>{' '}
-                            {selectedEvent.extendedProps.instructor}
-                          </p>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Véhicule:</span>{' '}
-                            {selectedEvent.extendedProps.vehicle}
-                          </p>
-                        </>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-semibold">Type:</span>{' '}
+                        {selectedEvent.extendedProps.type === 'driving' ? 'Leçon de conduite' : 'Cours de code'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-semibold">Moniteur:</span>{' '}
+                        {selectedEvent.extendedProps.instructorName}
+                      </p>
+                      {selectedEvent.extendedProps.vehicleName && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-semibold">Véhicule:</span>{' '}
+                          {selectedEvent.extendedProps.vehicleName}
+                        </p>
                       )}
-                      {selectedEvent.extendedProps.type === 'theory' && (
-                        <>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Moniteur:</span>{' '}
-                            {selectedEvent.extendedProps.instructor}
-                          </p>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Élèves:</span>{' '}
-                            {selectedEvent.extendedProps.students?.join(', ')}
-                          </p>
-                        </>
+                      {selectedEvent.extendedProps.location && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-semibold">Lieu:</span>{' '}
+                          {selectedEvent.extendedProps.location}
+                        </p>
                       )}
-                      {selectedEvent.extendedProps.type === 'exam' && (
-                        <>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Élève:</span>{' '}
-                            {selectedEvent.extendedProps.student}
-                          </p>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Moniteur:</span>{' '}
-                            {selectedEvent.extendedProps.instructor}
-                          </p>
-                          <p className="text-sm text-gray-dark">
-                            <span className="font-semibold">Type d'examen:</span>{' '}
-                            {selectedEvent.extendedProps.examType}
-                          </p>
-                        </>
+                      {selectedEvent.extendedProps.notes && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-semibold">Notes:</span>{' '}
+                          {selectedEvent.extendedProps.notes}
+                        </p>
                       )}
+                      <p className="text-sm text-gray-600">
+                        <span className="font-semibold">Statut:</span>{' '}
+                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                          selectedEvent.extendedProps.status === 'confirmed' 
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {selectedEvent.extendedProps.status === 'confirmed' ? 'Confirmé' : 'En attente'}
+                        </span>
+                      </p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:col-start-2"
-                    onClick={closeModal}
+                    className="inline-flex w-full justify-center rounded-md bg-[#E91E63] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#D81B60] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63] sm:col-start-2"
+                    onClick={() => {
+                      // TODO: Implémenter la modification
+                      closeEventDetailsModal();
+                    }}
                   >
                     Modifier
                   </button>
                   <button
                     type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-dark shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:col-start-1 sm:mt-0"
-                    onClick={closeModal}
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:col-start-1 sm:mt-0"
+                    onClick={closeEventDetailsModal}
                   >
                     Fermer
                   </button>
@@ -360,7 +282,7 @@ export default function PlanningPage() {
         </div>
       )}
 
-      {/* Modal de création d'une nouvelle leçon */}
+      {/* Modal Nouvelle Leçon */}
       {showNewLessonModal && (
         <div 
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50"
@@ -377,137 +299,131 @@ export default function PlanningPage() {
               >
                 <div>
                   <div className="mt-3 text-center sm:mt-5">
-                    <h3 id="new-lesson-modal" className="text-lg font-semibold leading-6 text-gray-dark">
+                    <h3 
+                      className="text-lg font-semibold leading-6 text-gray-900"
+                      id="new-lesson-modal"
+                    >
                       Nouvelle leçon
                     </h3>
                     <div className="mt-4">
                       <form className="space-y-4">
+                        {/* Type de leçon */}
                         <div>
-                          <label htmlFor="lesson-type" className="block text-sm font-medium text-gray-dark">
+                          <label htmlFor="lesson-type" className="block text-sm font-medium text-gray-700">
                             Type de leçon
                           </label>
                           <select
                             id="lesson-type"
-                            value={newLessonType}
-                            onChange={(e) => setNewLessonType(e.target.value as EventTypeKey)}
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
                           >
-                            {Object.entries(eventTypes).map(([key, value]) => (
-                              <option key={key} value={key}>
-                                {value.name}
-                              </option>
-                            ))}
+                            <option value="driving">Leçon de conduite</option>
+                            <option value="theory">Cours de code</option>
                           </select>
                         </div>
 
+                        {/* Moniteur */}
                         <div>
-                          <label htmlFor="instructor" className="block text-sm font-medium text-gray-dark">
+                          <label htmlFor="instructor" className="block text-sm font-medium text-gray-700">
                             Moniteur
                           </label>
                           <select
                             id="instructor"
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
                           >
-                            {instructors.map((instructor) => (
+                            {instructors.map(instructor => (
                               <option key={instructor.id} value={instructor.id}>
-                                {instructor.name}
+                                {instructor.first_name} {instructor.last_name}
                               </option>
                             ))}
                           </select>
                         </div>
 
-                        {newLessonType === 'practical' && (
-                          <>
-                            <div>
-                              <label htmlFor="student" className="block text-sm font-medium text-gray-dark">
-                                Élève
-                              </label>
-                              <input
-                                type="text"
-                                id="student"
-                                className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                                placeholder="Nom de l'élève"
-                              />
-                            </div>
-
-                            <div>
-                              <label htmlFor="vehicle" className="block text-sm font-medium text-gray-dark">
-                                Véhicule
-                              </label>
-                              <input
-                                type="text"
-                                id="vehicle"
-                                className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                                placeholder="Ex: Peugeot 208 - AB-123-CD"
-                              />
-                            </div>
-                          </>
-                        )}
-
-                        {newLessonType === 'theory' && (
-                          <div>
-                            <label htmlFor="students" className="block text-sm font-medium text-gray-dark">
-                              Élèves
-                            </label>
-                            <textarea
-                              id="students"
-                              rows={3}
-                              className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                              placeholder="Liste des élèves (un par ligne)"
-                            />
-                          </div>
-                        )}
-
-                        {newLessonType === 'exam' && (
-                          <>
-                            <div>
-                              <label htmlFor="exam-student" className="block text-sm font-medium text-gray-dark">
-                                Élève
-                              </label>
-                              <input
-                                type="text"
-                                id="exam-student"
-                                className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                                placeholder="Nom de l'élève"
-                              />
-                            </div>
-
-                            <div>
-                              <label htmlFor="exam-type" className="block text-sm font-medium text-gray-dark">
-                                Type d'examen
-                              </label>
-                              <input
-                                type="text"
-                                id="exam-type"
-                                className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                                placeholder="Ex: Permis B"
-                              />
-                            </div>
-                          </>
-                        )}
-
+                        {/* Élève */}
                         <div>
-                          <label htmlFor="date" className="block text-sm font-medium text-gray-dark">
-                            Date et heure
+                          <label htmlFor="student" className="block text-sm font-medium text-gray-700">
+                            Élève
+                          </label>
+                          <select
+                            id="student"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
+                          >
+                            {students.map(student => (
+                              <option key={student.id} value={student.id}>
+                                {student.first_name} {student.last_name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Véhicule */}
+                        <div>
+                          <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700">
+                            Véhicule
+                          </label>
+                          <select
+                            id="vehicle"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
+                          >
+                            {vehicles.map(vehicle => (
+                              <option key={vehicle.id} value={vehicle.id}>
+                                {vehicle.name} ({vehicle.license_plate})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Date et heure */}
+                        <div>
+                          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                            Date et heure de début
                           </label>
                           <input
                             type="datetime-local"
                             id="date"
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
                           />
                         </div>
 
+                        {/* Durée */}
                         <div>
-                          <label htmlFor="duration" className="block text-sm font-medium text-gray-dark">
+                          <label htmlFor="duration" className="block text-sm font-medium text-gray-700">
                             Durée (minutes)
                           </label>
-                          <input
-                            type="number"
+                          <select
                             id="duration"
-                            min="30"
-                            step="30"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
                             defaultValue="60"
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-gray-dark focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                          >
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 heure</option>
+                            <option value="90">1 heure 30</option>
+                            <option value="120">2 heures</option>
+                          </select>
+                        </div>
+
+                        {/* Lieu */}
+                        <div>
+                          <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                            Lieu
+                          </label>
+                          <input
+                            type="text"
+                            id="location"
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
+                            placeholder="Ex: 123 rue de la Paix"
+                          />
+                        </div>
+
+                        {/* Notes */}
+                        <div>
+                          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                            Notes
+                          </label>
+                          <textarea
+                            id="notes"
+                            rows={3}
+                            className="mt-1 block w-full rounded-md border-gray-300 py-2 px-3 text-base focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm"
+                            placeholder="Notes additionnelles..."
                           />
                         </div>
                       </form>
@@ -517,14 +433,17 @@ export default function PlanningPage() {
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:col-start-2"
-                    onClick={closeNewLessonModal}
+                    className="inline-flex w-full justify-center rounded-md bg-[#E91E63] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#D81B60] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63] sm:col-start-2"
+                    onClick={() => {
+                      // TODO: Implémenter la création
+                      closeNewLessonModal();
+                    }}
                   >
                     Créer
                   </button>
                   <button
                     type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-dark shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:col-start-1 sm:mt-0"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:col-start-1 sm:mt-0"
                     onClick={closeNewLessonModal}
                   >
                     Annuler
@@ -536,5 +455,19 @@ export default function PlanningPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Fonction pour personnaliser l'affichage des événements
+function renderEventContent(eventInfo: any) {
+  return (
+    <>
+      <b>{eventInfo.timeText}</b>
+      <i>{eventInfo.event.title}</i>
+      <div className="text-xs">
+        {eventInfo.event.extendedProps.instructorName}
+        {eventInfo.event.extendedProps.vehicleName && ` - ${eventInfo.event.extendedProps.vehicleName}`}
+      </div>
+    </>
   );
 }

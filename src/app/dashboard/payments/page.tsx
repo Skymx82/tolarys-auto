@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   MagnifyingGlassIcon,
   PlusIcon,
@@ -39,64 +39,6 @@ interface Payment {
   paidDate?: string;
 }
 
-// Données de test pour les paiements
-const payments: Payment[] = [
-  {
-    id: 1,
-    student: {
-      name: 'Sophie Martin',
-      id: 'SM123'
-    },
-    amount: 1500,
-    status: 'paid',
-    dueDate: '2025-02-01',
-    method: 'card',
-    invoice: 'INV-2025-001',
-    description: 'Formation permis B - Pack 20h',
-    paidAmount: 1500,
-    paidDate: '2025-01-28'
-  },
-  {
-    id: 2,
-    student: {
-      name: 'Lucas Bernard',
-      id: 'LB456'
-    },
-    amount: 1500,
-    status: 'partial',
-    dueDate: '2025-02-15',
-    method: 'cash',
-    invoice: 'INV-2025-002',
-    description: 'Formation permis B - Pack 20h',
-    paidAmount: 750,
-    paidDate: '2025-01-15'
-  },
-  {
-    id: 3,
-    student: {
-      name: 'Emma Petit',
-      id: 'EP789'
-    },
-    amount: 800,
-    status: 'pending',
-    dueDate: '2025-02-20',
-    invoice: 'INV-2025-003',
-    description: 'Code de la route - Pack complet'
-  },
-  {
-    id: 4,
-    student: {
-      name: 'Thomas Richard',
-      id: 'TR101'
-    },
-    amount: 1500,
-    status: 'overdue',
-    dueDate: '2025-01-31',
-    invoice: 'INV-2025-004',
-    description: 'Formation permis B - Pack 20h'
-  }
-];
-
 const statusColors: Record<PaymentStatus, string> = {
   paid: 'bg-green-100 text-green-800',
   pending: 'bg-blue-100 text-blue-800',
@@ -124,9 +66,61 @@ export default function PaymentsPage() {
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [showNewPaymentModal, setShowNewPaymentModal] = useState<boolean>(false);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [newPayment, setNewPayment] = useState<Partial<Payment>>({
     status: 'pending'
   });
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        // TODO: Remplacer par l'appel à Supabase
+        // const { data, error } = await supabase
+        //   .from('payments')
+        //   .select('*')
+        //   .order('created_at', { ascending: false });
+        
+        // if (error) throw error;
+        // setPayments(data);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des paiements:', error);
+      }
+    };
+
+    fetchPayments();
+  }, []);
+
+  const handleCreatePayment = async (paymentData: Partial<Payment>) => {
+    try {
+      // TODO: Implémenter avec Supabase
+      // const { data, error } = await supabase
+      //   .from('payments')
+      //   .insert([paymentData])
+      //   .select();
+
+      // if (error) throw error;
+      // setPayments(prev => [...prev, data[0]]);
+      setShowNewPaymentModal(false);
+    } catch (error) {
+      console.error('Erreur lors de la création du paiement:', error);
+    }
+  };
+
+  const handleUpdatePaymentStatus = async (paymentId: number, newStatus: PaymentStatus) => {
+    try {
+      // TODO: Implémenter avec Supabase
+      // const { data, error } = await supabase
+      //   .from('payments')
+      //   .update({ status: newStatus })
+      //   .eq('id', paymentId)
+      //   .select();
+
+      // if (error) throw error;
+      // setPayments(prev => prev.map(p => p.id === paymentId ? data[0] : p));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+    }
+  };
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -480,7 +474,7 @@ export default function PaymentsPage() {
                   <button
                     type="button"
                     className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
-                    onClick={handleCloseNewPaymentModal}
+                    onClick={() => handleCreatePayment(newPayment)}
                   >
                     Créer
                   </button>

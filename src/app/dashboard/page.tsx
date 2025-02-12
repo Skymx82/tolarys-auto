@@ -30,191 +30,136 @@ import {
 // Types pour la base de données
 interface DbStats {
   totalStudents: number;
+  activeStudents: number;
   totalInstructors: number;
   totalVehicles: number;
   totalExams: number;
   examSuccessRate: number;
-  revenue: number;
+  monthlyRevenue: number;
   drivingHours: number;
+  lastMonthDrivingHours: number;
+  lastMonthRevenue: number;
+  lastMonthExamSuccessRate: number;
 }
 
 interface DbLesson {
-  id: number;
-  student: string;
-  type: 'conduite' | 'code';
-  time: string;
-  duration: string;
-  status: 'confirmed' | 'pending';
-  instructor: string;
+  id: string;
+  student_id: string;
+  student_name: string;
+  type: 'driving' | 'theory';
+  start_time: string;
+  duration: number;
+  status: 'confirmed' | 'pending' | 'cancelled';
+  instructor_id: string;
+  instructor_name: string;
   location?: string;
-  vehicle?: string;
+  vehicle_id?: string;
+  vehicle_name?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface DbActivity {
-  id: number;
+  id: string;
   type: 'payment' | 'exam' | 'lesson';
-  user: string;
+  user_id: string;
+  user_name: string;
   action: string;
   target: string;
+  amount?: number;
+  created_at: string;
+}
+
+interface DailyLessons {
+  date: string;
+  total_lessons: number;
+}
+
+interface ChartData {
+  name: string;
+  total: number;
   date: string;
 }
 
-const stats = [
-  {
-    name: 'Élèves actifs',
-    value: '89',
-    change: '+4.75%',
-    changeType: 'increase',
-    icon: UsersIcon,
-    color: 'bg-[#E91E63]',
-  },
-  {
-    name: 'Taux de réussite',
-    value: '92%',
-    change: '+2.1%',
-    changeType: 'increase',
-    icon: TrophyIcon,
-    color: 'bg-green-500',
-  },
-  {
-    name: 'Chiffre du mois',
-    value: '14.5k€',
-    change: '+8%',
-    changeType: 'increase',
-    icon: CurrencyEuroIcon,
-    color: 'bg-blue-500',
-  },
-  {
-    name: 'Heures de conduite',
-    value: '245h',
-    change: '+12%',
-    changeType: 'increase',
-    icon: ClockIcon,
-    color: 'bg-purple-500',
-  },
-];
-
-const chartData = [
-  { name: 'Lun', lecons: 12 },
-  { name: 'Mar', lecons: 15 },
-  { name: 'Mer', lecons: 18 },
-  { name: 'Jeu', lecons: 14 },
-  { name: 'Ven', lecons: 16 },
-  { name: 'Sam', lecons: 8 },
-  { name: 'Dim', lecons: 0 },
-];
-
-const upcomingLessons = [
-  {
-    id: 1,
-    student: 'Emma Martin',
-    type: 'Conduite',
-    time: '09:00',
-    duration: '2h',
-    status: 'confirmed',
-  },
-  {
-    id: 2,
-    student: 'Lucas Bernard',
-    type: 'Code',
-    time: '11:30',
-    duration: '1h',
-    status: 'pending',
-  },
-  {
-    id: 3,
-    student: 'Sophie Dubois',
-    type: 'Conduite',
-    time: '14:00',
-    duration: '2h',
-    status: 'confirmed',
-  },
-];
-
-const recentActivity = [
-  {
-    id: 1,
-    type: 'payment',
-    user: 'Thomas Martin',
-    action: 'a effectué un paiement de',
-    target: '150€',
-    date: 'Il y a 2 heures',
-  },
-  {
-    id: 2,
-    type: 'exam',
-    user: 'Julie Dupont',
-    action: 'a réussi son',
-    target: 'examen du code',
-    date: 'Il y a 3 heures',
-  },
-  {
-    id: 3,
-    type: 'lesson',
-    user: 'Marc Lambert',
-    action: 'a réservé une leçon de',
-    target: 'conduite',
-    date: 'Il y a 5 heures',
-  },
-];
-
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(' ');
-}
-
-const WeeklyLessonsChart = () => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="h-80 flex items-center justify-center">
-        <div className="animate-pulse text-gray-500">Chargement du graphique...</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-80 w-full">
-      <ResponsiveContainer>
-        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-          <XAxis dataKey="name" stroke="#666" />
-          <YAxis stroke="#666" />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-            }}
-          />
-          <Bar 
-            dataKey="lecons" 
-            fill="#E91E63" 
-            radius={[4, 4, 0, 0]}
-            animationDuration={1000}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
 export default function DashboardPage() {
-  const [showNewLessonModal, setShowNewLessonModal] = useState(false);
-  const [dbStats, setDbStats] = useState<DbStats | null>(null);
-  const [dbLessons, setDbLessons] = useState<DbLesson[]>([]);
-  const [dbActivities, setDbActivities] = useState<DbActivity[]>([]);
+  const [stats, setStats] = useState<DbStats | null>(null);
+  const [weeklyLessons, setWeeklyLessons] = useState<DailyLessons[]>([]);
+  const [upcomingLessons, setUpcomingLessons] = useState<DbLesson[]>([]);
+  const [recentActivity, setRecentActivity] = useState<DbActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      // TODO: Implémenter la récupération des données depuis Supabase
+      setStats(null);
+      setWeeklyLessons([]);
+      setUpcomingLessons([]);
+      setRecentActivity([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatStats = (stats: DbStats) => [
+    {
+      name: 'Élèves actifs',
+      value: stats.activeStudents.toString(),
+      change: `${((stats.activeStudents / stats.totalStudents - 1) * 100).toFixed(2)}%`,
+      changeType: stats.activeStudents >= stats.totalStudents ? 'increase' : 'decrease',
+      icon: UsersIcon,
+      color: 'bg-[#E91E63]',
+    },
+    {
+      name: 'Taux de réussite',
+      value: `${stats.examSuccessRate}%`,
+      change: `${(stats.examSuccessRate - stats.lastMonthExamSuccessRate).toFixed(2)}%`,
+      changeType: stats.examSuccessRate >= stats.lastMonthExamSuccessRate ? 'increase' : 'decrease',
+      icon: TrophyIcon,
+      color: 'bg-green-500',
+    },
+    {
+      name: 'Chiffre du mois',
+      value: `${(stats.monthlyRevenue / 1000).toFixed(1)}k€`,
+      change: `${((stats.monthlyRevenue / stats.lastMonthRevenue - 1) * 100).toFixed(2)}%`,
+      changeType: stats.monthlyRevenue >= stats.lastMonthRevenue ? 'increase' : 'decrease',
+      icon: CurrencyEuroIcon,
+      color: 'bg-blue-500',
+    },
+    {
+      name: 'Heures de conduite',
+      value: `${stats.drivingHours}h`,
+      change: `${((stats.drivingHours / stats.lastMonthDrivingHours - 1) * 100).toFixed(2)}%`,
+      changeType: stats.drivingHours >= stats.lastMonthDrivingHours ? 'increase' : 'decrease',
+      icon: ClockIcon,
+      color: 'bg-purple-500',
+    },
+  ];
+
+  const formatChartData = (lessons: DailyLessons[]) => {
+    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    return lessons.map(lesson => ({
+      name: days[new Date(lesson.date).getDay()],
+      total: lesson.total_lessons,
+      date: lesson.date
+    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
+
+  function classNames(...classes: string[]) {
+    return classes.filter(Boolean).join(' ');
+  }
+
+  const [showNewLessonModal, setShowNewLessonModal] = useState(false);
   const [newLesson, setNewLesson] = useState({
     student: '',
-    type: 'conduite',
+    type: 'driving',
     date: '',
     time: '',
     duration: '2',
@@ -222,29 +167,6 @@ export default function DashboardPage() {
     location: '',
     vehicle: '',
   });
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        // TODO: Remplacer par les appels à la base de données
-        // const statsData = await supabase.from('dashboard_stats').select('*').single();
-        // const lessonsData = await supabase.from('lessons').select('*').order('time', { ascending: true }).limit(3);
-        // const activitiesData = await supabase.from('activities').select('*').order('date', { ascending: false }).limit(3);
-        
-        // Pour l'instant, on utilise les données mockées
-        setDbStats(null);
-        setDbLessons([]);
-        setDbActivities([]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
 
   const handleCreateLesson = async () => {
     try {
@@ -270,7 +192,7 @@ export default function DashboardPage() {
     setShowNewLessonModal(false);
     setNewLesson({
       student: '',
-      type: 'conduite',
+      type: 'driving',
       date: '',
       time: '',
       duration: '2',
@@ -306,7 +228,7 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Stats Grid */}
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
+            {stats && formatStats(stats).map((stat) => (
               <div
                 key={stat.name}
                 className="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow hover:shadow-lg transition-shadow duration-200 sm:px-6 sm:py-6"
@@ -358,7 +280,30 @@ export default function DashboardPage() {
                     <div className="animate-pulse text-gray-500">Chargement du graphique...</div>
                   </div>
                 }>
-                  <WeeklyLessonsChart />
+                  <div style={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={weeklyLessons && formatChartData(weeklyLessons)} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                        <XAxis dataKey="name" stroke="#666" />
+                        <YAxis stroke="#666" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                          }}
+                        />
+                        <Bar 
+                          dataKey="total" 
+                          name="Leçons"
+                          fill="#E91E63" 
+                          radius={[4, 4, 0, 0]}
+                          animationDuration={1000}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </Suspense>
               </div>
             </div>
@@ -381,10 +326,10 @@ export default function DashboardPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium text-gray-900">
-                              {lesson.student}
+                              {lesson.student_name}
                             </p>
                             <p className="truncate text-sm text-gray-500">
-                              {lesson.type} • {lesson.time} • {lesson.duration}
+                              {lesson.type} • {lesson.start_time} • {lesson.duration}
                             </p>
                           </div>
                           <div>
@@ -444,7 +389,7 @@ export default function DashboardPage() {
                             <div className="min-w-0 flex-1">
                               <div>
                                 <div className="text-sm font-medium text-gray-900">
-                                  {activity.user}
+                                  {activity.user_name}
                                 </div>
                                 <p className="mt-0.5 text-sm text-gray-500">
                                   {activity.action}{' '}
@@ -454,7 +399,7 @@ export default function DashboardPage() {
                                 </p>
                               </div>
                               <div className="mt-2 text-sm text-gray-500">
-                                {activity.date}
+                                {activity.created_at}
                               </div>
                             </div>
                           </div>
@@ -534,8 +479,8 @@ export default function DashboardPage() {
                             value={newLesson.type}
                             onChange={(e) => setNewLesson({ ...newLesson, type: e.target.value })}
                           >
-                            <option value="conduite">Conduite</option>
-                            <option value="code">Code</option>
+                            <option value="driving">Conduite</option>
+                            <option value="theory">Code</option>
                           </select>
                         </div>
 
@@ -599,7 +544,7 @@ export default function DashboardPage() {
                           />
                         </div>
 
-                        {newLesson.type === 'conduite' && (
+                        {newLesson.type === 'driving' && (
                           <>
                             {/* Lieu de rendez-vous */}
                             <div>

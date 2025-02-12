@@ -43,38 +43,7 @@ interface Vehicle {
   plate: string;
 }
 
-// Données de test temporaires
-const testStudent: Student = {
-  id: "S001",
-  name: "Jean Dupont",
-  email: "jean.dupont@email.com",
-  phone: "06 12 34 56 78"
-};
 
-const testInstructor: Instructor = {
-  id: "I001",
-  name: "Marie Martin",
-  email: "marie.martin@auto-ecole.com",
-  phone: "06 98 76 54 32"
-};
-
-const testVehicle: Vehicle = {
-  id: "V001",
-  name: "Peugeot 208",
-  plate: "AA-123-BB"
-};
-
-const testExam: DbExam = {
-  id: "E001",
-  student: testStudent,
-  instructor: testInstructor,
-  vehicle: testVehicle,
-  date: "2025-02-15",
-  time: "14:30",
-  type: "practical",
-  status: "scheduled",
-  location: "Centre d'examen Paris 15"
-};
 
 // Types pour la base de données
 interface DbExam {
@@ -160,10 +129,6 @@ export default function ExamsPage() {
         //   .select('*');
 
         // Pour l'instant, on utilise les données de test
-        setDbExams([testExam]);
-        setDbInstructors([testInstructor]);
-        setDbStudents([testStudent]);
-        setDbVehicles([testVehicle]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       } finally {

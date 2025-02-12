@@ -51,60 +51,7 @@ const emptySchedule: Schedule = {
   saturday: []
 };
 
-// Données de test
-const mockInstructors: Instructor[] = [
-  {
-    id: 'JD001',
-    name: 'Jean Dupont',
-    email: 'jean.dupont@auto-ecole.com',
-    phone: '06 11 22 33 44',
-    specialties: ['Code', 'Conduite', 'Conduite accompagnée'],
-    schedule: {
-      monday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      tuesday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      wednesday: [{ start: '08:00', end: '12:00' }],
-      thursday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      friday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      saturday: [{ start: '08:00', end: '12:00' }]
-    },
-    rating: 4.8,
-    totalLessons: 245
-  },
-  {
-    id: 'ML001',
-    name: 'Marie Lambert',
-    email: 'marie.lambert@auto-ecole.com',
-    phone: '06 22 33 44 55',
-    specialties: ['Code', 'Conduite'],
-    schedule: {
-      monday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
-      tuesday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
-      wednesday: [],
-      thursday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
-      friday: [{ start: '09:00', end: '12:00' }, { start: '14:00', end: '17:00' }],
-      saturday: [{ start: '09:00', end: '12:00' }]
-    },
-    rating: 4.9,
-    totalLessons: 189
-  },
-  {
-    id: 'PB001',
-    name: 'Pierre Bernard',
-    email: 'pierre.bernard@auto-ecole.com',
-    phone: '06 33 44 55 66',
-    specialties: ['Conduite', 'Perfectionnement'],
-    schedule: {
-      monday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      tuesday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      wednesday: [{ start: '08:00', end: '12:00' }],
-      thursday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      friday: [{ start: '08:00', end: '12:00' }, { start: '14:00', end: '18:00' }],
-      saturday: [{ start: '08:00', end: '12:00' }]
-    },
-    rating: 4.7,
-    totalLessons: 156
-  }
-];
+
 
 export default function InstructorsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,7 +62,7 @@ export default function InstructorsPage() {
     specialties: [],
     schedule: { ...emptySchedule }
   });
-  const [instructors, setInstructors] = useState<Instructor[]>(mockInstructors);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

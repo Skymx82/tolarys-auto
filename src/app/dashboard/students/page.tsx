@@ -46,69 +46,19 @@ interface StudentPayments {
 }
 
 interface Student {
-  id: number;
-  name: string;
+  id: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
-  startDate: string;
+  birth_date: string;
+  address: string;
+  postal_code: string;
+  city: string;
+  created_at: string;
   progress: StudentProgress;
   payments: StudentPayments;
 }
-
-// Constants
-const students: Student[] = [
-  {
-    id: 1,
-    name: 'Sophie Martin',
-    email: 'sophie.martin@email.com',
-    phone: '06 12 34 56 78',
-    startDate: '15/01/2025',
-    progress: {
-      theory: {
-        status: 'completed',
-        score: '35/40',
-        examDate: '01/02/2025'
-      },
-      practical: {
-        status: 'in_progress',
-        hours: 15,
-        totalHours: 20,
-        nextLesson: '12/02/2025'
-      }
-    },
-    payments: {
-      status: 'up_to_date',
-      totalPaid: 1200,
-      totalDue: 1500
-    }
-  },
-  {
-    id: 2,
-    name: 'Lucas Bernard',
-    email: 'lucas.bernard@email.com',
-    phone: '06 23 45 67 89',
-    startDate: '20/01/2025',
-    progress: {
-      theory: {
-        status: 'in_progress',
-        score: '28/40',
-        examDate: null
-      },
-      practical: {
-        status: 'not_started',
-        hours: 0,
-        totalHours: 20,
-        nextLesson: null
-      }
-    },
-    payments: {
-      status: 'pending',
-      totalPaid: 500,
-      totalDue: 1500
-    }
-  },
-  // Ajoutez plus d'élèves ici
-];
 
 const statusColors: Record<ProgressStatus | PaymentStatus, string> = {
   completed: 'bg-green-100 text-green-800',
@@ -136,19 +86,24 @@ export default function StudentsPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [showNewStudentModal, setShowNewStudentModal] = useState<boolean>(false);
+  const [students, setStudents] = useState<Student[]>([]);
   const [newStudent, setNewStudent] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
-    startDate: '',
+    birth_date: '',
+    address: '',
+    postal_code: '',
+    city: ''
   });
 
   const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const closeModal = () => {
+  const handleCloseModal = () => {
     setShowDetails(false);
     setSelectedStudent(null);
   };
@@ -156,15 +111,19 @@ export default function StudentsPage() {
   const handleCloseNewStudentModal = () => {
     setShowNewStudentModal(false);
     setNewStudent({
-      name: '',
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
-      startDate: '',
+      birth_date: '',
+      address: '',
+      postal_code: '',
+      city: ''
     });
   };
 
   const handleCreateStudent = () => {
-    // TODO: Implémenter la création de l'élève
+    // TODO: Implémenter la création de l'élève avec la base de données
     handleCloseNewStudentModal();
   };
 
@@ -227,12 +186,12 @@ export default function StudentsPage() {
                     <div className="flex-shrink-0">
                       <div className="h-10 w-10 rounded-full bg-primary bg-opacity-10 flex items-center justify-center">
                         <span className="text-primary font-medium">
-                          {student.name.split(' ').map(n => n[0]).join('')}
+                          {student.first_name.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                     </div>
                     <div className="ml-4">
-                      <div className="font-medium text-gray-900">{student.name}</div>
+                      <div className="font-medium text-gray-900">{student.first_name} {student.last_name}</div>
                       <div className="text-sm text-gray-500">{student.email}</div>
                     </div>
                   </div>
@@ -277,7 +236,7 @@ export default function StudentsPage() {
           aria-labelledby="modal-title"
           role="dialog"
           aria-modal="true"
-          onClick={closeModal}
+          onClick={handleCloseModal}
         >
           <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
@@ -289,7 +248,7 @@ export default function StudentsPage() {
                   <button
                     type="button"
                     className="rounded-md bg-white text-gray-400 hover:text-gray-500"
-                    onClick={closeModal}
+                    onClick={handleCloseModal}
                   >
                     <span className="sr-only">Fermer</span>
                     <XMarkIcon className="h-6 w-6" aria-hidden="true" />
@@ -307,7 +266,7 @@ export default function StudentsPage() {
                           <h4 className="text-sm font-medium text-gray-500">Nom</h4>
                           <div className="mt-1 flex items-center">
                             <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-                            <p className="text-sm text-gray-900">{selectedStudent.name}</p>
+                            <p className="text-sm text-gray-900">{selectedStudent.first_name} {selectedStudent.last_name}</p>
                           </div>
                         </div>
                         <div>
@@ -328,7 +287,7 @@ export default function StudentsPage() {
                           <h4 className="text-sm font-medium text-gray-500">Date d'inscription</h4>
                           <div className="mt-1 flex items-center">
                             <CalendarIcon className="h-5 w-5 text-gray-400 mr-2" />
-                            <p className="text-sm text-gray-900">{selectedStudent.startDate}</p>
+                            <p className="text-sm text-gray-900">{selectedStudent.created_at}</p>
                           </div>
                         </div>
                       </div>
@@ -415,14 +374,14 @@ export default function StudentsPage() {
                   <button
                     type="button"
                     className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
-                    onClick={closeModal}
+                    onClick={handleCloseModal}
                   >
                     Modifier
                   </button>
                   <button
                     type="button"
                     className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
-                    onClick={closeModal}
+                    onClick={handleCloseModal}
                   >
                     Fermer
                   </button>
@@ -467,7 +426,29 @@ export default function StudentsPage() {
                       <form className="space-y-4">
                         {/* Nom */}
                         <div>
-                          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+                            Prénom
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <div className="relative flex flex-grow items-stretch focus-within:z-10">
+                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <UserIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                              </div>
+                              <input
+                                type="text"
+                                id="first_name"
+                                className="block w-full rounded-md border-gray-300 pl-10 focus:border-primary focus:ring-primary sm:text-sm"
+                                placeholder="Prénom de l'élève"
+                                value={newStudent.first_name}
+                                onChange={(e) => setNewStudent({ ...newStudent, first_name: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Nom */}
+                        <div>
+                          <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
                             Nom
                           </label>
                           <div className="mt-1 flex rounded-md shadow-sm">
@@ -477,11 +458,11 @@ export default function StudentsPage() {
                               </div>
                               <input
                                 type="text"
-                                id="name"
+                                id="last_name"
                                 className="block w-full rounded-md border-gray-300 pl-10 focus:border-primary focus:ring-primary sm:text-sm"
                                 placeholder="Nom de l'élève"
-                                value={newStudent.name}
-                                onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                                value={newStudent.last_name}
+                                onChange={(e) => setNewStudent({ ...newStudent, last_name: e.target.value })}
                               />
                             </div>
                           </div>
@@ -531,10 +512,10 @@ export default function StudentsPage() {
                           </div>
                         </div>
 
-                        {/* Date d'inscription */}
+                        {/* Date de naissance */}
                         <div>
-                          <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
-                            Date d'inscription
+                          <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700">
+                            Date de naissance
                           </label>
                           <div className="mt-1 flex rounded-md shadow-sm">
                             <div className="relative flex flex-grow items-stretch focus-within:z-10">
@@ -543,10 +524,76 @@ export default function StudentsPage() {
                               </div>
                               <input
                                 type="date"
-                                id="startDate"
+                                id="birth_date"
                                 className="block w-full rounded-md border-gray-300 pl-10 focus:border-primary focus:ring-primary sm:text-sm"
-                                value={newStudent.startDate}
-                                onChange={(e) => setNewStudent({ ...newStudent, startDate: e.target.value })}
+                                value={newStudent.birth_date}
+                                onChange={(e) => setNewStudent({ ...newStudent, birth_date: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Adresse */}
+                        <div>
+                          <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                            Adresse
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <div className="relative flex flex-grow items-stretch focus-within:z-10">
+                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <UserIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                              </div>
+                              <input
+                                type="text"
+                                id="address"
+                                className="block w-full rounded-md border-gray-300 pl-10 focus:border-primary focus:ring-primary sm:text-sm"
+                                placeholder="Adresse de l'élève"
+                                value={newStudent.address}
+                                onChange={(e) => setNewStudent({ ...newStudent, address: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Code postal */}
+                        <div>
+                          <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700">
+                            Code postal
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <div className="relative flex flex-grow items-stretch focus-within:z-10">
+                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <UserIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                              </div>
+                              <input
+                                type="text"
+                                id="postal_code"
+                                className="block w-full rounded-md border-gray-300 pl-10 focus:border-primary focus:ring-primary sm:text-sm"
+                                placeholder="Code postal de l'élève"
+                                value={newStudent.postal_code}
+                                onChange={(e) => setNewStudent({ ...newStudent, postal_code: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Ville */}
+                        <div>
+                          <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                            Ville
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <div className="relative flex flex-grow items-stretch focus-within:z-10">
+                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <UserIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                              </div>
+                              <input
+                                type="text"
+                                id="city"
+                                className="block w-full rounded-md border-gray-300 pl-10 focus:border-primary focus:ring-primary sm:text-sm"
+                                placeholder="Ville de l'élève"
+                                value={newStudent.city}
+                                onChange={(e) => setNewStudent({ ...newStudent, city: e.target.value })}
                               />
                             </div>
                           </div>
