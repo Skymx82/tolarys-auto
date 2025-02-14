@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { CheckIcon, StarIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useState } from 'react';
 import Footer from '@/components/Footer';
 
 const testimonials = [
@@ -52,6 +54,8 @@ const features = [
 ];
 
 export default function HomePage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="bg-white">
       {/* Navbar */}
@@ -61,7 +65,9 @@ export default function HomePage() {
             <div className="flex-shrink-0">
               <span className="text-2xl font-bold text-[#E91E63]">Tolarys-Auto</span>
             </div>
-            <div className="flex items-center space-x-4">
+            
+            {/* Desktop menu */}
+            <div className="hidden md:flex items-center space-x-4">
               <Link
                 href="/connexion"
                 className="text-[#1E1E1E] hover:text-[#E91E63] transition-colors"
@@ -75,7 +81,41 @@ export default function HomePage() {
                 Démarrer maintenant
               </Link>
             </div>
+
+            {/* Mobile menu button */}
+            <div className="flex md:hidden">
+              <button
+                type="button"
+                className="text-gray-500 hover:text-[#E91E63]"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                <span className="sr-only">Open main menu</span>
+                {mobileMenuOpen ? (
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                ) : (
+                  <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden py-4 space-y-4">
+              <Link
+                href="/connexion"
+                className="block text-[#1E1E1E] hover:text-[#E91E63] transition-colors"
+              >
+                Connexion
+              </Link>
+              <Link
+                href="/inscription"
+                className="block bg-[#E91E63] text-white px-4 py-2 rounded-md hover:bg-[#D81B60] transition-colors text-center"
+              >
+                Démarrer maintenant
+              </Link>
+            </div>
+          )}
         </div>
       </nav>
 
