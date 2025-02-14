@@ -90,13 +90,13 @@ export default function DashboardDemoLayout({
                 {/* Sidebar mobile */}
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <div className="flex h-16 shrink-0 items-center">
-                    <Image
-                      src="https://www.tolarys-toulouse.fr/Logo_trans.png"
-                      alt="Tolarys"
-                      width={32}
-                      height={32}
-                      unoptimized
-                    />
+                  <Image
+                    src="https://tolarys-auto.vercel.app/Logo.png"
+                    alt="Tolarys-Auto"
+                    width={32}
+                    height={32}
+                    unoptimized
+                  />
                   </div>
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
