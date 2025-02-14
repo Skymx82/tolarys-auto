@@ -7,6 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
+import resourcePlugin from '@fullcalendar/resource';
 import frLocale from '@fullcalendar/core/locales/fr';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import './styles.css';
@@ -69,7 +70,7 @@ export default function PlanningPage() {
       title: `${lesson.type === 'driving' ? 'Conduite' : 'Code'} - ${lesson.student_name}`,
       start: new Date(lesson.start_time),
       end: new Date(lesson.end_time),
-      groupId: lesson.instructor_id, // Utiliser l'ID de l'instructeur comme groupId
+      resourceId: lesson.instructor_id, // Utiliser l'ID de l'instructeur comme resourceId
       color: lesson.color || (lesson.type === 'driving' ? '#E91E63' : '#2196F3'),
       status: lesson.status,
       type: lesson.type,
@@ -148,8 +149,14 @@ export default function PlanningPage() {
       {/* Calendrier */}
       <div className="bg-white rounded-lg shadow">
         <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-          initialView="timeGridWeek"
+          plugins={[
+            dayGridPlugin,
+            timeGridPlugin,
+            interactionPlugin,
+            listPlugin,
+            resourcePlugin
+          ]}
+          initialView="resourceTimeGridWeek"
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
@@ -168,10 +175,11 @@ export default function PlanningPage() {
           nowIndicator={true}
           dayMaxEvents={true}
           eventContent={renderEventContent}
-          eventGroupSet={instructors.map(instructor => ({
-            groupId: instructor.id,
+          resources={instructors.map(instructor => ({
+            id: instructor.id,
             title: `${instructor.first_name} ${instructor.last_name}`
           }))}
+          resourceGroupField="instructorId"
         />
       </div>
 
@@ -201,22 +209,22 @@ export default function PlanningPage() {
                     <div className="mt-4 text-left space-y-2">
                       <p className="text-sm text-gray-600">
                         <span className="font-semibold">Date:</span>{' '}
-                        {new Date(selectedEvent.start).toLocaleDateString('fr-FR', {
+                        {selectedEvent.start ? new Date(selectedEvent.start).toLocaleDateString('fr-FR', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
-                        })}
+                        }) : ''}
                       </p>
                       <p className="text-sm text-gray-600">
                         <span className="font-semibold">Horaire:</span>{' '}
-                        {new Date(selectedEvent.start).toLocaleTimeString('fr-FR', {
+                        {selectedEvent.start ? new Date(selectedEvent.start).toLocaleTimeString('fr-FR', {
                           hour: '2-digit',
                           minute: '2-digit'
-                        })} - {new Date(selectedEvent.end).toLocaleTimeString('fr-FR', {
+                        }) : ''} - {selectedEvent.end ? new Date(selectedEvent.end).toLocaleTimeString('fr-FR', {
                           hour: '2-digit',
                           minute: '2-digit'
-                        })}
+                        }) : ''}
                       </p>
                       <p className="text-sm text-gray-600">
                         <span className="font-semibold">Type:</span>{' '}

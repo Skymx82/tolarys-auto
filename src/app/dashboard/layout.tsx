@@ -91,10 +91,11 @@ export default function DashboardLayout({
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <div className="flex h-16 shrink-0 items-center">
                     <Image
-                      src="/logo.png"
-                      alt="Tolarys"
+                      src="https://tolarys-auto.vercel.app/Logo.png"
+                      alt="Tolarys-Auto"
                       width={32}
                       height={32}
+                      unoptimized
                     />
                   </div>
                   <nav className="flex flex-1 flex-col">
@@ -139,12 +140,13 @@ export default function DashboardLayout({
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center gap-x-3">
             <Image
-              src="/logo.png"
-              alt="Tolarys"
+              src="https://tolarys-auto.vercel.app/Logo.png"
+              alt="Tolarys-Auto"
               width={32}
               height={32}
+              unoptimized
             />
-            <span className="text-lg font-semibold">Tolarys</span>
+            <span className="text-lg font-semibold">Tolarys-Auto</span>
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">

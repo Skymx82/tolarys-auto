@@ -1,93 +1,58 @@
-import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { v4 as uuidv4 } from 'uuid'
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { generatePassword } from '@/utils/auth';
+
+// Initialiser le client Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    console.log('Données reçues:', body)  // Log des données reçues
+    const data = await request.json();
     
-    const {
-      nomAutoEcole,
-      siret,
-      adresse,
-      ville,
-      codePostal,
-      nomResponsable,
-      email,
-      telephone
-    } = body
+    // Générer un mot de passe aléatoire sécurisé
+    const password = generatePassword();
 
-    // 1. Créer l'auto-école
-    const { data: autoEcole, error: autoEcoleError } = await supabase
-      .from('auto_ecoles')
-      .insert([
-        {
-          nom: nomAutoEcole,
-          siret: siret,
-          adresse: adresse,
-          ville: ville,
-          code_postal: codePostal,
-          email: email,
-          telephone: telephone,
-          statut: 'actif'
-        }
-      ])
-      .select()
-      .single()
+    // Créer un nouvel utilisateur dans Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: data.email,
+      password: password,
+      email_confirm: true // Confirmer automatiquement l'email
+    });
 
-    if (autoEcoleError) {
-      console.error('Erreur Supabase:', autoEcoleError)  // Log de l'erreur Supabase
-      return NextResponse.json(
-        { error: `Erreur lors de la création de l'auto-école: ${autoEcoleError.message}` },
-        { status: 400 }
-      )
-    }
+    if (authError) throw authError;
 
-    // 2. Créer l'utilisateur admin
-    const [prenom, ...nomArray] = nomResponsable.split(' ')
-    const nom = nomArray.join(' ')
-    
-    const { data: utilisateur, error: utilisateurError } = await supabase
-      .from('utilisateurs')
-      .insert([
-        {
-          auto_ecole_id: autoEcole.id,
-          nom: nom || 'Non spécifié',
-          prenom: prenom,
-          email: email,
-          role: 'admin',
-          telephone: telephone,
-          statut: 'actif'
-        }
-      ])
-      .select()
-      .single()
+    // Créer l'entrée dans la table companies
+    const { error: dbError } = await supabase
+      .from('companies')
+      .insert({
+        id: authData.user.id,
+        name: data.nomAutoEcole,
+        siret: data.siret,
+        address: data.adresse,
+        city: data.ville,
+        postal_code: data.codePostal,
+        manager_name: data.nomResponsable,
+        email: data.email,
+        phone: data.telephone,
+        status: 'active'
+      });
 
-    if (utilisateurError) {
-      console.error('Erreur Supabase (utilisateur):', utilisateurError)  // Log de l'erreur Supabase
-      // Supprimer l'auto-école si la création de l'utilisateur échoue
-      await supabase
-        .from('auto_ecoles')
-        .delete()
-        .match({ id: autoEcole.id })
+    if (dbError) throw dbError;
 
-      return NextResponse.json(
-        { error: `Erreur lors de la création de l'utilisateur: ${utilisateurError.message}` },
-        { status: 400 }
-      )
-    }
-
+    // Retourner les identifiants
     return NextResponse.json({
-      success: true,
-      autoEcole,
-      utilisateur
-    })
+      email: data.email,
+      password: password
+    });
+
   } catch (error) {
-    console.error('Erreur lors de l\'inscription:', error)
+    console.error('Erreur lors de l\'inscription:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de l\'inscription: ' + (error as Error).message },
+      { error: 'Une erreur est survenue lors de l\'inscription' },
       { status: 500 }
-    )
+    );
   }
 }

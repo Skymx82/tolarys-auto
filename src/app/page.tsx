@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { CheckIcon, StarIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 import Footer from '@/components/Footer';
 
@@ -53,16 +52,6 @@ const features = [
 ];
 
 export default function HomePage() {
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [countdown, setCountdown] = useState(1800); // 30 minutes en secondes
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowLoginModal(false);
-  };
-
   return (
     <div className="bg-white">
       {/* Navbar */}
@@ -70,15 +59,15 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex-shrink-0">
-              <span className="text-2xl font-bold text-[#E91E63]">Tolarys</span>
+              <span className="text-2xl font-bold text-[#E91E63]">Tolarys-Auto</span>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowLoginModal(true)}
+              <Link
+                href="/connexion"
                 className="text-[#1E1E1E] hover:text-[#E91E63] transition-colors"
               >
                 Connexion
-              </button>
+              </Link>
               <Link
                 href="/inscription"
                 className="bg-[#E91E63] text-white px-4 py-2 rounded-md hover:bg-[#D81B60] transition-colors"
@@ -89,42 +78,6 @@ export default function HomePage() {
           </div>
         </div>
       </nav>
-
-      {/* Modal de connexion */}
-      {showLoginModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-[#1E1E1E]">Connexion</h2>
-              <button onClick={() => setShowLoginModal(false)} className="text-gray-500 hover:text-[#E91E63]">
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <input
-                type="email"
-                placeholder="Email"
-                className="w-full px-3 py-2 border rounded-md focus:ring-[#E91E63] focus:border-[#E91E63]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <input
-                type="password"
-                placeholder="Mot de passe"
-                className="w-full px-3 py-2 border rounded-md focus:ring-[#E91E63] focus:border-[#E91E63]"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="w-full bg-[#E91E63] text-white py-2 rounded-md hover:bg-[#D81B60] transition-colors"
-              >
-                Se connecter
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Hero Section avec Offre Limitée */}
       <div className="relative pt-24 pb-32 overflow-hidden">
@@ -276,6 +229,7 @@ export default function HomePage() {
                     </span>
                   </li>
                 </ul>
+
                 <div className="mt-8">
                   <Link
                     href="/dashboard-demo"

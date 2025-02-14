@@ -4,27 +4,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PaymentForm from '@/components/PaymentForm';
 import Link from 'next/link';
+import { useFormStore } from '../store';
 
 export default function InscriptionPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    nomAutoEcole: '',
-    siret: '',
-    adresse: '',
-    ville: '',
-    codePostal: '',
-    nomResponsable: '',
-    email: '',
-    telephone: '',
-  });
+  const { formData, setFormData } = useFormStore();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
+    setFormData({
+      ...formData,
       [name]: value
-    }));
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +25,7 @@ export default function InscriptionPage() {
       setStep(2);
     } else if (step === 2) {
       try {
-        const response = await fetch('/api/inscription', {
+        const response = await fetch('/api/inscription/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -41,23 +33,16 @@ export default function InscriptionPage() {
           body: JSON.stringify(formData),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
+          const data = await response.json();
           throw new Error(data.error || 'Une erreur est survenue');
         }
 
-        // Si tout va bien, on passe à l'étape du paiement
         setStep(3);
       } catch (error) {
-        console.error('Erreur lors de l\'inscription:', error);
-        alert('Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
+        console.error('Erreur lors de la vérification:', error);
+        alert('Une erreur est survenue. Veuillez réessayer.');
       }
-    } else if (step === 3) {
-      // Ici on enverra les données au backend
-      console.log('Données du formulaire:', formData);
-      // Rediriger vers une page de confirmation
-      router.push('/inscription/confirmation');
     }
   };
 
@@ -71,17 +56,17 @@ export default function InscriptionPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          {step === 1 && 'Informations de votre auto-école'}
-          {step === 2 && 'Informations de contact'}
-          {step === 3 && 'Paiement'}
+          Inscription
         </h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {step < 3 ? (
+        {step === 3 ? (
+          <PaymentForm email={formData.email} />
+        ) : (
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <form className="space-y-6" onSubmit={handleSubmit}>
-              {step === 1 ? (
+              {step === 1 && (
                 <>
                   <div>
                     <label htmlFor="nomAutoEcole" className="block text-sm font-medium text-gray-700">
@@ -102,7 +87,7 @@ export default function InscriptionPage() {
 
                   <div>
                     <label htmlFor="siret" className="block text-sm font-medium text-gray-700">
-                      Numéro SIRET
+                      SIRET
                     </label>
                     <div className="mt-1">
                       <input
@@ -170,7 +155,9 @@ export default function InscriptionPage() {
                     </div>
                   </div>
                 </>
-              ) : (
+              )}
+
+              {step === 2 && (
                 <>
                   <div>
                     <label htmlFor="nomResponsable" className="block text-sm font-medium text-gray-700">
@@ -225,34 +212,25 @@ export default function InscriptionPage() {
                 </>
               )}
 
-              <div className="flex flex-col space-y-2">
-                <button
-                  type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#E91E63] hover:bg-[#D81B60] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
-                >
-                  {step === 1 ? 'Continuer' : step === 2 ? 'Procéder au paiement' : 'Confirmer'}
-                </button>
-                {step === 1 ? (
-                  <Link
-                    href="/"
-                    className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
-                  >
-                    Retour à l'accueil
-                  </Link>
-                ) : (
+              <div className="flex justify-between space-x-4">
+                {step > 1 && (
                   <button
                     type="button"
                     onClick={handlePrevious}
-                    className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
+                    className="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
                   >
                     Précédent
                   </button>
                 )}
+                <button
+                  type="submit"
+                  className="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#E91E63] hover:bg-[#D81B60] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
+                >
+                  {step === 2 ? 'Procéder au paiement' : 'Suivant'}
+                </button>
               </div>
             </form>
           </div>
-        ) : (
-          <PaymentForm />
         )}
       </div>
     </div>
