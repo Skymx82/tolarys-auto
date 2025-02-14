@@ -95,6 +95,7 @@ export default function DashboardDemoLayout({
                       alt="Tolarys"
                       width={32}
                       height={32}
+                      unoptimized
                     />
                   </div>
                   <nav className="flex flex-1 flex-col">
