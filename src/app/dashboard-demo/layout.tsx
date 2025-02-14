@@ -91,7 +91,7 @@ export default function DashboardDemoLayout({
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <div className="flex h-16 shrink-0 items-center">
                     <Image
-                      src="/logo.png"
+                      src="https://www.tolarys-toulouse.fr/Logo_trans.png"
                       alt="Tolarys"
                       width={32}
                       height={32}
