@@ -12,7 +12,7 @@ const Footer = () => {
           <div className="col-span-1">
             <Image src="/Logo.png" alt="Tolarys Logo" width={120} height={40} className="mb-4" />
             <p className="text-sm text-gray-400 mb-4">
-              Tolarys révolutionne la gestion des auto-écoles avec des solutions innovantes et intuitives.
+              Tolarys-Auto révolutionne la gestion des auto-écoles avec des solutions innovantes et intuitives.
             </p>
             <div className="flex space-x-4">
               <a href="https://facebook.com/tolarystoulouse" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">

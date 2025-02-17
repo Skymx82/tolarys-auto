@@ -55,6 +55,7 @@ const features = [
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSecondImage, setIsSecondImage] = useState(false);
 
   return (
     <div className="bg-white">
@@ -286,15 +287,19 @@ export default function HomePage() {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-tr from-[#E91E63] to-[#ff4081] opacity-10" />
                 <div className="relative p-8">
-                  <div className="aspect-video rounded-lg bg-white shadow-2xl overflow-hidden">
+                  <div className="aspect-video rounded-lg bg-white shadow-2xl overflow-hidden relative">
                     <div className="absolute inset-0 bg-[#1E1E1E]/5" />
                     <img
-                      src="/demo-view.png"
+                      key={isSecondImage ? "planing" : "demo"}
+                      src={isSecondImage ? "/planing-view.png" : "/demo-view.png"}
                       alt="Aperçu de l'interface Tolarys"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-opacity duration-500 ease-in-out"
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg cursor-pointer hover:bg-white transition-colors">
+                      <div 
+                        onClick={() => setIsSecondImage(!isSecondImage)}
+                        className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg cursor-pointer hover:bg-white transition-colors"
+                      >
                         <div className="w-0 h-0 border-t-8 border-t-transparent border-l-12 border-l-[#E91E63] border-b-8 border-b-transparent ml-1" />
                       </div>
                     </div>

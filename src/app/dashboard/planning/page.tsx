@@ -8,6 +8,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import resourcePlugin from '@fullcalendar/resource';
+import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import frLocale from '@fullcalendar/core/locales/fr';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import './styles.css';
@@ -154,7 +155,8 @@ export default function PlanningPage() {
             timeGridPlugin,
             interactionPlugin,
             listPlugin,
-            resourcePlugin
+            resourcePlugin,
+            resourceTimeGridPlugin
           ]}
           initialView="resourceTimeGridWeek"
           headerToolbar={{

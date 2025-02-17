@@ -6,7 +6,6 @@ import Link from 'next/link';
 
 interface Credentials {
   email: string;
-  password: string;
 }
 
 function SuccessPageContent() {
@@ -37,8 +36,7 @@ function SuccessPageContent() {
       }
 
       setCredentials({
-        email: data.email,
-        password: data.password
+        email: data.email
       });
     } catch (error) {
       console.error('Erreur:', error);
@@ -91,9 +89,9 @@ function SuccessPageContent() {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Voici vos identifiants de connexion</h3>
+              <h3 className="text-lg font-medium text-gray-900">Votre compte a été créé avec succès</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Conservez-les précieusement, vous en aurez besoin pour vous connecter.
+                Vous pouvez maintenant vous connecter avec votre email et le mot de passe que vous avez choisi.
               </p>
             </div>
 
@@ -101,17 +99,13 @@ function SuccessPageContent() {
               <label className="block text-sm font-medium text-gray-700">
                 Email
               </label>
-              <div className="mt-1 p-3 bg-gray-50 rounded-md">
-                {credentials.email}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Mot de passe
-              </label>
-              <div className="mt-1 p-3 bg-gray-50 rounded-md">
-                {credentials.password}
+              <div className="mt-1">
+                <input
+                  type="text"
+                  readOnly
+                  value={credentials.email}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-700 sm:text-sm"
+                />
               </div>
             </div>
 
@@ -120,17 +114,8 @@ function SuccessPageContent() {
                 href="/connexion"
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#E91E63] hover:bg-[#D81B60] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
               >
-                Se connecter
+                Aller à la page de connexion
               </Link>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`Email: ${credentials.email}\nMot de passe: ${credentials.password}`);
-                  alert('Identifiants copiés dans le presse-papier !');
-                }}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
-              >
-                Copier les identifiants
-              </button>
             </div>
           </div>
         </div>
@@ -141,16 +126,7 @@ function SuccessPageContent() {
 
 export default function SuccessPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold">Chargement...</h2>
-            <p className="mt-2 text-gray-600">Veuillez patienter pendant que nous finalisons votre inscription.</p>
-          </div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={null}>
       <SuccessPageContent />
     </Suspense>
   );

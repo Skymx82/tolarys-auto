@@ -11,6 +11,8 @@ interface FormState {
     nomResponsable: string;
     email: string;
     telephone: string;
+    password: string;
+    confirmPassword: string;
   };
   setFormData: (data: any) => void;
   resetFormData: () => void;
@@ -25,6 +27,8 @@ const initialState = {
   nomResponsable: '',
   email: '',
   telephone: '',
+  password: '',
+  confirmPassword: '',
 };
 
 export const useFormStore = create<FormState>()(

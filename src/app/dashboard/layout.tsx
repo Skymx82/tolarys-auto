@@ -1,11 +1,13 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import NotificationMenu from '@/components/NotificationMenu';
+import { useAutoEcole } from '@/hooks/useAutoEcole';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import {
   Bars3Icon,
   XMarkIcon,
@@ -41,7 +43,35 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const isDemo = !pathname.includes('demo');
+  const { autoEcole, loading: autoEcoleLoading } = useAutoEcole();
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error?.message === 'User from sub claim in JWT does not exist' || !session) {
+          await supabase.auth.signOut();
+          router.push('/connexion');
+          return;
+        }
+
+        // Vérification supplémentaire de l'utilisateur
+        const { error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          await supabase.auth.signOut();
+          router.push('/connexion');
+        }
+      } catch (e) {
+        router.push('/connexion');
+      }
+    };
+
+    checkSession();
+  }, [router]);
 
   return (
     <div>
@@ -97,6 +127,11 @@ export default function DashboardLayout({
                       height={32}
                       unoptimized
                     />
+                    {autoEcole && (
+                      <span className="ml-4 text-sm font-semibold text-gray-900">
+                        {autoEcole.nom}
+                      </span>
+                    )}
                   </div>
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">

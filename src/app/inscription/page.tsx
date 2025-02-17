@@ -24,6 +24,11 @@ export default function InscriptionPage() {
     if (step === 1) {
       setStep(2);
     } else if (step === 2) {
+      if (formData.password !== formData.confirmPassword) {
+        alert('Les mots de passe ne correspondent pas');
+        return;
+      }
+      
       try {
         const response = await fetch('/api/inscription/verify', {
           method: 'POST',
@@ -49,6 +54,8 @@ export default function InscriptionPage() {
   const handlePrevious = () => {
     if (step > 1) {
       setStep(step - 1);
+    } else {
+      router.push('/');
     }
   };
 
@@ -194,6 +201,40 @@ export default function InscriptionPage() {
                   </div>
 
                   <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                      Mot de passe
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#E91E63] focus:border-[#E91E63] sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                      Confirmer le mot de passe
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        required
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#E91E63] focus:border-[#E91E63] sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
                     <label htmlFor="telephone" className="block text-sm font-medium text-gray-700">
                       Téléphone
                     </label>
@@ -213,15 +254,13 @@ export default function InscriptionPage() {
               )}
 
               <div className="flex justify-between space-x-4">
-                {step > 1 && (
-                  <button
-                    type="button"
-                    onClick={handlePrevious}
-                    className="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
-                  >
-                    Précédent
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  className="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"
+                >
+                  {step === 1 ? 'Retour à l\'accueil' : 'Précédent'}
+                </button>
                 <button
                   type="submit"
                   className="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#E91E63] hover:bg-[#D81B60] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E91E63]"

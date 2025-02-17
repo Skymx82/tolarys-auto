@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   MagnifyingGlassIcon,
   PlusIcon,
@@ -13,6 +13,8 @@ import {
   AcademicCapIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useAutoEcole } from '@/hooks/useAutoEcole';
 
 // Types
 interface TimeSlot {
@@ -21,12 +23,12 @@ interface TimeSlot {
 }
 
 interface Schedule {
-  monday: TimeSlot[];
-  tuesday: TimeSlot[];
-  wednesday: TimeSlot[];
-  thursday: TimeSlot[];
-  friday: TimeSlot[];
-  saturday: TimeSlot[];
+  lundi: TimeSlot[];
+  mardi: TimeSlot[];
+  mercredi: TimeSlot[];
+  jeudi: TimeSlot[];
+  vendredi: TimeSlot[];
+  samedi: TimeSlot[];
 }
 
 interface Instructor {
@@ -43,12 +45,12 @@ interface Instructor {
 }
 
 const emptySchedule: Schedule = {
-  monday: [],
-  tuesday: [],
-  wednesday: [],
-  thursday: [],
-  friday: [],
-  saturday: []
+  lundi: [],
+  mardi: [],
+  mercredi: [],
+  jeudi: [],
+  vendredi: [],
+  samedi: []
 };
 
 
@@ -63,8 +65,45 @@ export default function InstructorsPage() {
     schedule: { ...emptySchedule }
   });
   const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const supabase = createClientComponentClient();
+  const { autoEcole } = useAutoEcole();
+
+  useEffect(() => {
+    fetchInstructors();
+  }, []);
+
+  const fetchInstructors = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('moniteurs')
+        .select('*');
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedInstructors = data.map(moniteur => ({
+          id: moniteur.id,
+          name: `${moniteur.nom} ${moniteur.prenom}`,
+          email: moniteur.email,
+          phone: moniteur.telephone || '',
+          specialties: moniteur.specialites || [],
+          schedule: moniteur.disponibilites || emptySchedule,
+          rating: moniteur.note_moyenne || 0,
+          totalLessons: moniteur.total_lecons || 0,
+        }));
+        setInstructors(formattedInstructors);
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des moniteurs:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des moniteurs');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredInstructors = instructors.filter(instructor =>
     instructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,33 +129,143 @@ export default function InstructorsPage() {
     setShowDetails(true);
   };
 
-  const handleCreateInstructor = () => {
-    // Validation des champs requis
-    if (!newInstructor.name || !newInstructor.email || !newInstructor.phone) {
-      alert('Veuillez remplir tous les champs obligatoires');
-      return;
+  const handleCreateInstructor = async () => {
+    try {
+      if (!newInstructor.name || !newInstructor.email || !newInstructor.phone) {
+        throw new Error('Veuillez remplir tous les champs obligatoires');
+      }
+
+      if (!autoEcole?.id) {
+        throw new Error('Impossible de créer un moniteur : auto-école non trouvée');
+      }
+
+      const [nom, prenom] = newInstructor.name.split(' ');
+      
+      if (!nom || !prenom) {
+        throw new Error('Veuillez entrer un nom et un prénom');
+      }
+
+      // Créer l'objet à insérer
+      const moniteurData = {
+        nom,
+        prenom,
+        email: newInstructor.email,
+        telephone: newInstructor.phone,
+        specialites: newInstructor.specialties || [],
+        disponibilites: newInstructor.schedule || emptySchedule,
+        statut: 'actif',
+        auto_ecole_id: autoEcole.id
+      };
+
+      console.log('Données à insérer:', moniteurData);
+
+      const { data, error } = await supabase
+        .from('moniteurs')
+        .insert([moniteurData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erreur Supabase détaillée:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
+
+      console.log('Moniteur créé avec succès:', data);
+
+      await fetchInstructors();
+      handleCloseNewInstructorModal();
+    } catch (err) {
+      console.error('Erreur complète:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création du moniteur');
     }
-
-    // Validation des horaires
-    const schedule = newInstructor.schedule || emptySchedule;
-    const hasValidSchedule = Object.values(schedule).some(
-      (slots: TimeSlot[]) => slots.length > 0 && slots.every(slot => slot.start && slot.end)
-    );
-
-    if (!hasValidSchedule) {
-      alert('Veuillez ajouter au moins un créneau horaire valide');
-      return;
-    }
-
-    // Cette fonction sera implémentée pour créer un nouvel instructeur dans la base de données
-    console.log('Nouvel instructeur:', newInstructor);
-    handleCloseNewInstructorModal();
   };
 
-  const handleUpdateInstructor = (instructorId: string, updates: Partial<Instructor>) => {
-    // Cette fonction sera implémentée pour mettre à jour un instructeur dans la base de données
-    console.log('Mise à jour de l\'instructeur:', instructorId, updates);
-    handleCloseModal();
+  const handleUpdateInstructor = async (instructorId: string, updates: Partial<Instructor>) => {
+    try {
+      const { error } = await supabase
+        .from('moniteurs')
+        .update({
+          nom: updates.name?.split(' ')[0],
+          prenom: updates.name?.split(' ')[1],
+          email: updates.email,
+          telephone: updates.phone,
+          specialites: updates.specialties,
+          disponibilites: updates.schedule
+        })
+        .eq('id', instructorId);
+
+      if (error) throw error;
+
+      await fetchInstructors();
+      handleCloseModal();
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour du moniteur:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour du moniteur');
+    }
+  };
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedInstructor, setEditedInstructor] = useState<Instructor | null>(null);
+
+  const handleDeleteInstructor = async (instructorId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce moniteur ?')) {
+      try {
+        const { error } = await supabase
+          .from('moniteurs')
+          .delete()
+          .eq('id', instructorId);
+
+        if (error) throw error;
+
+        await fetchInstructors();
+        handleCloseModal();
+      } catch (err) {
+        console.error('Erreur lors de la suppression:', err);
+        setError(err instanceof Error ? err.message : 'Erreur lors de la suppression du moniteur');
+      }
+    }
+  };
+
+  const handleStartEdit = () => {
+    setIsEditing(true);
+    setEditedInstructor(selectedInstructor);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editedInstructor) return;
+
+    try {
+      const { error } = await supabase
+        .from('moniteurs')
+        .update({
+          nom: editedInstructor.name.split(' ')[0],
+          prenom: editedInstructor.name.split(' ')[1],
+          email: editedInstructor.email,
+          telephone: editedInstructor.phone,
+          specialites: editedInstructor.specialties,
+          disponibilites: editedInstructor.schedule
+        })
+        .eq('id', editedInstructor.id);
+
+      if (error) throw error;
+
+      await fetchInstructors();
+      setIsEditing(false);
+      setEditedInstructor(null);
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour du moniteur');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedInstructor(null);
   };
 
   if (loading) {
@@ -230,6 +379,7 @@ export default function InstructorsPage() {
                     <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                   </button>
                 </div>
+
                 <div>
                   <div className="mt-3 text-center sm:mt-5">
                     <h3 className="text-lg font-semibold leading-6 text-gray-900">
@@ -238,18 +388,52 @@ export default function InstructorsPage() {
                     <div className="mt-4 text-left">
                       <div className="space-y-4">
                         {/* Informations de base */}
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">Nom</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedInstructor.name}</p>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">Email</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedInstructor.email}</p>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-500">Téléphone</h4>
-                          <p className="mt-1 text-sm text-gray-900">{selectedInstructor.phone}</p>
-                        </div>
+                        {isEditing ? (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Nom complet</label>
+                              <input
+                                type="text"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                value={editedInstructor?.name || ''}
+                                onChange={(e) => setEditedInstructor(prev => prev ? {...prev, name: e.target.value} : null)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Email</label>
+                              <input
+                                type="email"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                value={editedInstructor?.email || ''}
+                                onChange={(e) => setEditedInstructor(prev => prev ? {...prev, email: e.target.value} : null)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Téléphone</label>
+                              <input
+                                type="tel"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                value={editedInstructor?.phone || ''}
+                                onChange={(e) => setEditedInstructor(prev => prev ? {...prev, phone: e.target.value} : null)}
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-500">Nom</h4>
+                              <p className="mt-1 text-sm text-gray-900">{selectedInstructor.name}</p>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-500">Email</h4>
+                              <p className="mt-1 text-sm text-gray-900">{selectedInstructor.email}</p>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-500">Téléphone</h4>
+                              <p className="mt-1 text-sm text-gray-900">{selectedInstructor.phone}</p>
+                            </div>
+                          </>
+                        )}
 
                         {/* Spécialités */}
                         <div>
@@ -269,29 +453,115 @@ export default function InstructorsPage() {
                         {/* Horaires */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-500">Horaires</h4>
-                          <div className="mt-2 space-y-2">
+                          <div className="mt-2 space-y-4">
                             {(Object.entries({
-                              monday: 'Lundi',
-                              tuesday: 'Mardi',
-                              wednesday: 'Mercredi',
-                              thursday: 'Jeudi',
-                              friday: 'Vendredi',
-                              saturday: 'Samedi'
+                              lundi: 'Lundi',
+                              mardi: 'Mardi',
+                              mercredi: 'Mercredi',
+                              jeudi: 'Jeudi',
+                              vendredi: 'Vendredi',
+                              samedi: 'Samedi'
                             }) as [keyof Schedule, string][]).map(([day, label]) => (
-                              <div key={day} className="flex items-center justify-between">
-                                <span className="text-sm font-medium">{label}</span>
-                                <div className="text-sm text-gray-500">
-                                  {selectedInstructor.schedule[day].length > 0 ? (
-                                    selectedInstructor.schedule[day].map((slot, index) => (
-                                      <span key={index} className="ml-2">
-                                        {slot.start} - {slot.end}
-                                        {index < selectedInstructor.schedule[day].length - 1 && ', '}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    <span className="text-gray-400">Non disponible</span>
+                              <div key={day} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-gray-700">{label}</span>
+                                  {isEditing && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (editedInstructor) {
+                                          const updatedSchedule = { ...editedInstructor.schedule };
+                                          updatedSchedule[day] = [
+                                            ...(updatedSchedule[day] || []),
+                                            { start: '', end: '' }
+                                          ];
+                                          setEditedInstructor({
+                                            ...editedInstructor,
+                                            schedule: updatedSchedule
+                                          });
+                                        }
+                                      }}
+                                      className="inline-flex items-center text-sm text-primary hover:text-primary/80"
+                                    >
+                                      <PlusIcon className="h-4 w-4 mr-1" />
+                                      Ajouter un créneau
+                                    </button>
                                   )}
                                 </div>
+                                {isEditing ? (
+                                  <div className="space-y-2">
+                                    {editedInstructor?.schedule[day]?.map((slot, index) => (
+                                      <div key={index} className="flex items-center space-x-2">
+                                        <input
+                                          type="time"
+                                          value={slot.start}
+                                          onChange={(e) => {
+                                            if (editedInstructor) {
+                                              const updatedSchedule = { ...editedInstructor.schedule };
+                                              updatedSchedule[day][index] = {
+                                                ...updatedSchedule[day][index],
+                                                start: e.target.value
+                                              };
+                                              setEditedInstructor({
+                                                ...editedInstructor,
+                                                schedule: updatedSchedule
+                                              });
+                                            }
+                                          }}
+                                          className="block rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                        />
+                                        <span>à</span>
+                                        <input
+                                          type="time"
+                                          value={slot.end}
+                                          onChange={(e) => {
+                                            if (editedInstructor) {
+                                              const updatedSchedule = { ...editedInstructor.schedule };
+                                              updatedSchedule[day][index] = {
+                                                ...updatedSchedule[day][index],
+                                                end: e.target.value
+                                              };
+                                              setEditedInstructor({
+                                                ...editedInstructor,
+                                                schedule: updatedSchedule
+                                              });
+                                            }
+                                          }}
+                                          className="block rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (editedInstructor) {
+                                              const updatedSchedule = { ...editedInstructor.schedule };
+                                              updatedSchedule[day] = updatedSchedule[day].filter((_, i) => i !== index);
+                                              setEditedInstructor({
+                                                ...editedInstructor,
+                                                schedule: updatedSchedule
+                                              });
+                                            }
+                                          }}
+                                          className="text-red-600 hover:text-red-800"
+                                        >
+                                          <XMarkIcon className="h-5 w-5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-gray-500">
+                                    {selectedInstructor.schedule[day]?.length > 0 ? (
+                                      selectedInstructor.schedule[day].map((slot, index) => (
+                                        <span key={index} className="mr-2">
+                                          {slot.start} - {slot.end}
+                                          {index < selectedInstructor.schedule[day].length - 1 && ', '}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="text-gray-400">Non disponible</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -311,6 +581,43 @@ export default function InstructorsPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+                <div className="mt-5 sm:mt-6 flex justify-end space-x-2">
+                  {isEditing ? (
+                    <>
+                      <button
+                        type="button"
+                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        onClick={handleCancelEdit}
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        onClick={handleSaveEdit}
+                      >
+                        Enregistrer
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        onClick={handleStartEdit}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        onClick={() => handleDeleteInstructor(selectedInstructor.id)}
+                      >
+                        Supprimer
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -432,12 +739,12 @@ export default function InstructorsPage() {
                           </label>
                           <div className="mt-2 space-y-4">
                             {(Object.entries({
-                              monday: 'Lundi',
-                              tuesday: 'Mardi',
-                              wednesday: 'Mercredi',
-                              thursday: 'Jeudi',
-                              friday: 'Vendredi',
-                              saturday: 'Samedi'
+                              lundi: 'Lundi',
+                              mardi: 'Mardi',
+                              mercredi: 'Mercredi',
+                              jeudi: 'Jeudi',
+                              vendredi: 'Vendredi',
+                              samedi: 'Samedi'
                             }) as [keyof Schedule, string][]).map(([day, label]) => (
                               <div key={day} className="space-y-2">
                                 <div className="flex items-center justify-between">
