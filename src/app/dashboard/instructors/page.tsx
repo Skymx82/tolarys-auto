@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   MagnifyingGlassIcon,
   PlusIcon,
@@ -71,11 +71,7 @@ export default function InstructorsPage() {
   const supabase = createClientComponentClient();
   const { autoEcole } = useAutoEcole();
 
-  useEffect(() => {
-    fetchInstructors();
-  }, []);
-
-  const fetchInstructors = async () => {
+  const fetchInstructors = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -99,11 +95,15 @@ export default function InstructorsPage() {
       }
     } catch (err) {
       console.error('Erreur lors du chargement des moniteurs:', err);
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des moniteurs');
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchInstructors();
+  }, [fetchInstructors]);
 
   const filteredInstructors = instructors.filter(instructor =>
     instructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-export default function ConnexionPage() {
+function ConnexionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -135,5 +135,13 @@ export default function ConnexionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConnexionPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <ConnexionForm />
+    </Suspense>
   );
 }

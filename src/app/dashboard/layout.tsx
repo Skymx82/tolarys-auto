@@ -71,7 +71,7 @@ export default function DashboardLayout({
     };
 
     checkSession();
-  }, [router]);
+  }, [router, supabase.auth]);
 
   return (
     <div>

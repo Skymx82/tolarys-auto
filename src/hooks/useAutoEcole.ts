@@ -75,7 +75,7 @@ export function useAutoEcole() {
     }
 
     fetchAutoEcole();
-  }, []);
+  }, [supabase]);
 
   return { autoEcole, loading, error };
 }
