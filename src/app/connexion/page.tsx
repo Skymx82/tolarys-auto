@@ -24,34 +24,51 @@ function ConnexionForm() {
     }
   }, [searchParams]);
 
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const maxRetries = 3;
+    let retryCount = 0;
+    let lastError = null;
 
-      if (error) throw error;
+    while (retryCount < maxRetries) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (!data?.session) {
-        throw new Error('Session non créée');
+        if (error) throw error;
+
+        if (!data?.session) {
+          throw new Error('Session non créée');
+        }
+
+        // Si on arrive ici, la connexion a réussi
+        router.push('/dashboard');
+        return;
+
+      } catch (err: any) {
+        lastError = err;
+        if (err?.message === 'Request rate limit reached') {
+          // Attendre avec un délai exponentiel (1s, 2s, 4s)
+          const delay = Math.pow(2, retryCount) * 1000;
+          await sleep(delay);
+          retryCount++;
+          continue;
+        }
+        // Si ce n'est pas une erreur de rate limit, on arrête immédiatement
+        break;
       }
-
-      // Stocker la session
-      await supabase.auth.setSession(data.session);
-
-      router.push('/dashboard');
-      router.refresh();
-    } catch (error: any) {
-      console.error('Erreur de connexion:', error);
-      setError(error.message || 'Une erreur est survenue');
-    } finally {
-      setLoading(false);
     }
+
+    // Si on arrive ici, toutes les tentatives ont échoué
+    setError(lastError?.message || 'Une erreur est survenue lors de la connexion');
+    setLoading(false);
   };
 
   return (

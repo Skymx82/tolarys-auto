@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useAutoEcole } from '@/hooks/useAutoEcole';
 import { 
   MagnifyingGlassIcon, 
   PlusIcon,
@@ -21,22 +23,18 @@ import {
 type ProgressStatus = 'completed' | 'in_progress' | 'not_started';
 type PaymentStatus = 'up_to_date' | 'pending' | 'overdue';
 
-interface TheoryProgress {
-  status: ProgressStatus;
-  score: string;
-  examDate: string | null;
-}
-
-interface PracticalProgress {
-  status: ProgressStatus;
-  hours: number;
-  totalHours: number;
-  nextLesson: string | null;
-}
-
 interface StudentProgress {
-  theory: TheoryProgress;
-  practical: PracticalProgress;
+  theory: {
+    status: ProgressStatus;
+    score: string;
+    examDate: string | null;
+  };
+  practical: {
+    status: ProgressStatus;
+    hours: number;
+    totalHours: number;
+    nextLesson: string | null;
+  };
 }
 
 interface StudentPayments {
@@ -56,8 +54,16 @@ interface Student {
   postal_code: string;
   city: string;
   created_at: string;
-  progress: StudentProgress;
-  payments: StudentPayments;
+  theory_status: ProgressStatus;
+  theory_score: string;
+  theory_exam_date: string | null;
+  practical_status: ProgressStatus;
+  practical_hours_done: number;
+  practical_total_hours: number;
+  practical_next_lesson: string | null;
+  payment_status: PaymentStatus;
+  payment_total_paid: number;
+  payment_total_due: number;
 }
 
 const statusColors: Record<ProgressStatus | PaymentStatus, string> = {
@@ -87,6 +93,8 @@ export default function StudentsPage() {
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [showNewStudentModal, setShowNewStudentModal] = useState<boolean>(false);
   const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newStudent, setNewStudent] = useState({
     first_name: '',
     last_name: '',
@@ -97,6 +105,236 @@ export default function StudentsPage() {
     postal_code: '',
     city: ''
   });
+
+  const supabase = createClientComponentClient();
+  const { autoEcole } = useAutoEcole();
+
+  const fetchStudents = useCallback(async () => {
+    if (!autoEcole?.id) {
+      console.log('Pas d\'auto-école sélectionnée');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Tentative de récupération des étudiants pour auto_ecole_id:', autoEcole.id);
+
+      const response = await supabase
+        .from('students')
+        .select('*')
+        .eq('auto_ecole_id', autoEcole.id);
+
+      // Log de la réponse complète pour le débogage
+      console.log('Réponse Supabase complète:', JSON.stringify(response, null, 2));
+
+      if (response.error) {
+        // Log détaillé de l'erreur
+        const errorDetails = {
+          status: response.status,
+          statusText: response.statusText,
+          error: {
+            message: response.error.message,
+            code: response.error?.code,
+            details: response.error?.details,
+            hint: response.error?.hint
+          }
+        };
+        console.error('Erreur Supabase complète:', JSON.stringify(errorDetails, null, 2));
+        setError(`Erreur de base de données: ${response.error.message}`);
+        return;
+      }
+
+      if (!response.data) {
+        console.log('Aucune donnée reçue de Supabase');
+        setStudents([]);
+        return;
+      }
+
+      console.log(`${response.data.length} étudiants trouvés`);
+
+      const formattedStudents = response.data.map(student => {
+        // Vérification des champs requis
+        if (!student.first_name || !student.last_name) {
+          console.warn('Étudiant avec données manquantes:', student);
+        }
+
+        return {
+          id: student.id,
+          first_name: student.first_name || '',
+          last_name: student.last_name || '',
+          email: student.email || '',
+          phone: student.phone || '',
+          birth_date: student.birth_date || '',
+          address: student.address || '',
+          postal_code: student.postal_code || '',
+          city: student.city || '',
+          created_at: student.created_at || new Date().toISOString(),
+          theory_status: student.theory_status || 'not_started',
+          theory_score: student.theory_score || '0',
+          theory_exam_date: student.theory_exam_date || '',
+          practical_status: student.practical_status || 'not_started',
+          practical_hours_done: student.practical_hours_done || 0,
+          practical_total_hours: student.practical_total_hours || 20,
+          practical_next_lesson: student.practical_next_lesson || '',
+          payment_status: student.payment_status || 'pending',
+          payment_total_paid: student.payment_total_paid || 0,
+          payment_total_due: student.payment_total_due || 1200
+        };
+      });
+
+      console.log('Étudiants formatés avec succès:', formattedStudents.length);
+      setStudents(formattedStudents);
+      setError(null);
+
+    } catch (err) {
+      // Log détaillé de l'erreur générale
+      const errorInfo = {
+        name: err instanceof Error ? err.name : 'Unknown',
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        raw: err
+      };
+      console.error('Erreur détaillée lors du chargement:', JSON.stringify(errorInfo, null, 2));
+      setError('Une erreur est survenue lors du chargement des étudiants');
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, autoEcole?.id]);
+
+  const createStudent = async (studentData: typeof newStudent) => {
+    if (!autoEcole?.id) {
+      setError('Pas d\'auto-école sélectionnée');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Début de la création d\'un étudiant pour auto_ecole_id:', autoEcole.id);
+      
+      // Vérifier les données requises
+      if (!studentData.first_name || !studentData.last_name) {
+        throw new Error('Le nom et le prénom sont requis');
+      }
+
+      const newStudentWithDefaults = {
+        ...studentData,
+        auto_ecole_id: autoEcole.id,
+        created_at: new Date().toISOString(),
+        theory_status: 'not_started' as const,
+        theory_score: '0',
+        practical_status: 'not_started' as const,
+        practical_hours_done: 0,
+        practical_total_hours: 20,
+        payment_status: 'pending' as const,
+        payment_total_paid: 0,
+        payment_total_due: 1200
+      };
+
+      console.log('Données de l\'étudiant à créer:', newStudentWithDefaults);
+
+      const { data, error } = await supabase
+        .from('students')
+        .insert([newStudentWithDefaults])
+        .select();
+
+      if (error) {
+        console.error('Erreur Supabase détaillée lors de la création:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        setError(`Erreur lors de la création: ${error.message}`);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('Aucune donnée retournée après la création');
+      }
+
+      console.log('Étudiant créé avec succès:', data[0]);
+      
+      await fetchStudents();
+      handleCloseNewStudentModal();
+      setError(null);
+    } catch (err) {
+      console.error('Erreur détaillée lors de la création:', {
+        error: err,
+        message: err instanceof Error ? err.message : 'Erreur inconnue',
+        stack: err instanceof Error ? err.stack : undefined
+      });
+      setError('Une erreur est survenue lors de la création de l\'étudiant. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStudent = async (id: string, updates: Partial<Student>) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('students')
+        .update({
+          first_name: updates.first_name,
+          last_name: updates.last_name,
+          email: updates.email,
+          phone: updates.phone,
+          birth_date: updates.birth_date,
+          address: updates.address,
+          postal_code: updates.postal_code,
+          city: updates.city,
+          theory_status: updates.theory_status,
+          theory_score: updates.theory_score,
+          theory_exam_date: updates.theory_exam_date,
+          practical_status: updates.practical_status,
+          practical_hours_done: updates.practical_hours_done,
+          practical_total_hours: updates.practical_total_hours,
+          practical_next_lesson: updates.practical_next_lesson,
+          payment_status: updates.payment_status,
+          payment_total_paid: updates.payment_total_paid,
+          payment_total_due: updates.payment_total_due
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      await fetchStudents();
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour de l\'étudiant:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteStudent = async (id: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchStudents();
+    } catch (err) {
+      console.error('Erreur lors de la suppression de l\'étudiant:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (autoEcole?.id) {
+      fetchStudents();
+    }
+  }, [fetchStudents, autoEcole?.id]);
+
+  const handleCreateStudent = async () => {
+    await createStudent(newStudent);
+    handleCloseNewStudentModal();
+  };
 
   const filteredStudents = students.filter(student =>
     `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,11 +358,6 @@ export default function StudentsPage() {
       postal_code: '',
       city: ''
     });
-  };
-
-  const handleCreateStudent = () => {
-    // TODO: Implémenter la création de l'élève avec la base de données
-    handleCloseNewStudentModal();
   };
 
   return (
@@ -199,24 +432,24 @@ export default function StudentsPage() {
                     {/* Progression code */}
                     <div className="flex flex-col items-center">
                       <AcademicCapIcon className={`h-6 w-6 ${
-                        student.progress.theory.status === 'completed' ? 'text-green-500' :
-                        student.progress.theory.status === 'in_progress' ? 'text-blue-500' : 'text-gray-400'
+                        student.theory_status === 'completed' ? 'text-green-500' :
+                        student.theory_status === 'in_progress' ? 'text-blue-500' : 'text-gray-400'
                       }`} />
                       <span className="text-xs text-gray-500">Code</span>
                     </div>
                     {/* Progression conduite */}
                     <div className="flex flex-col items-center">
                       <ClockIcon className={`h-6 w-6 ${
-                        student.progress.practical.status === 'completed' ? 'text-green-500' :
-                        student.progress.practical.status === 'in_progress' ? 'text-blue-500' : 'text-gray-400'
+                        student.practical_status === 'completed' ? 'text-green-500' :
+                        student.practical_status === 'in_progress' ? 'text-blue-500' : 'text-gray-400'
                       }`} />
                       <span className="text-xs text-gray-500">Conduite</span>
                     </div>
                     {/* Statut paiement */}
                     <div className="flex flex-col items-center">
                       <CurrencyEuroIcon className={`h-6 w-6 ${
-                        student.payments.status === 'up_to_date' ? 'text-green-500' :
-                        student.payments.status === 'pending' ? 'text-yellow-500' : 'text-red-500'
+                        student.payment_status === 'up_to_date' ? 'text-green-500' :
+                        student.payment_status === 'pending' ? 'text-yellow-500' : 'text-red-500'
                       }`} />
                       <span className="text-xs text-gray-500">Paiement</span>
                     </div>
@@ -304,15 +537,15 @@ export default function StudentsPage() {
                                 <h5 className="text-sm font-medium text-gray-900">Formation Code</h5>
                               </div>
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                statusColors[selectedStudent.progress.theory.status]
+                                statusColors[selectedStudent.theory_status]
                               }`}>
-                                {progressStatusLabels[selectedStudent.progress.theory.status]}
+                                {progressStatusLabels[selectedStudent.theory_status]}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-500">Score: {selectedStudent.progress.theory.score}</p>
-                            {selectedStudent.progress.theory.examDate && (
+                            <p className="text-sm text-gray-500">Score: {selectedStudent.theory_score}</p>
+                            {selectedStudent.theory_exam_date && (
                               <p className="text-sm text-gray-500">
-                                Examen le: {selectedStudent.progress.theory.examDate}
+                                Examen le: {selectedStudent.theory_exam_date}
                               </p>
                             )}
                           </div>
@@ -325,17 +558,17 @@ export default function StudentsPage() {
                                 <h5 className="text-sm font-medium text-gray-900">Formation Conduite</h5>
                               </div>
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                statusColors[selectedStudent.progress.practical.status]
+                                statusColors[selectedStudent.practical_status]
                               }`}>
-                                {progressStatusLabels[selectedStudent.progress.practical.status]}
+                                {progressStatusLabels[selectedStudent.practical_status]}
                               </span>
                             </div>
                             <p className="text-sm text-gray-500">
-                              Heures effectuées: {selectedStudent.progress.practical.hours}/{selectedStudent.progress.practical.totalHours}
+                              Heures effectuées: {selectedStudent.practical_hours_done}/{selectedStudent.practical_total_hours}
                             </p>
-                            {selectedStudent.progress.practical.nextLesson && (
+                            {selectedStudent.practical_next_lesson && (
                               <p className="text-sm text-gray-500">
-                                Prochaine leçon: {selectedStudent.progress.practical.nextLesson}
+                                Prochaine leçon: {selectedStudent.practical_next_lesson}
                               </p>
                             )}
                           </div>
@@ -352,17 +585,17 @@ export default function StudentsPage() {
                               <h5 className="text-sm font-medium text-gray-900">État des paiements</h5>
                             </div>
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              statusColors[selectedStudent.payments.status]
+                              statusColors[selectedStudent.payment_status]
                             }`}>
-                              {paymentStatusLabels[selectedStudent.payments.status]}
+                              {paymentStatusLabels[selectedStudent.payment_status]}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <p className="text-sm text-gray-500">
-                              Montant payé: {selectedStudent.payments.totalPaid}€
+                              Montant payé: {selectedStudent.payment_total_paid}€
                             </p>
                             <p className="text-sm text-gray-500">
-                              Montant total: {selectedStudent.payments.totalDue}€
+                              Montant total: {selectedStudent.payment_total_due}€
                             </p>
                           </div>
                         </div>

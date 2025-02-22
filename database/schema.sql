@@ -91,13 +91,13 @@ CREATE POLICY "Modification pour l'utilisateur propriétaire" ON auto_ecoles
 CREATE POLICY "Lecture pour l'utilisateur de l'auto-école" ON utilisateurs
     FOR SELECT
     USING (
-        auto_ecole_id IN (
-            SELECT ae.id 
+        EXISTS (
+            SELECT 1 
             FROM auto_ecoles ae 
-            WHERE ae.user_id = auth.uid()
+            WHERE ae.id = utilisateurs.auto_ecole_id 
+            AND ae.user_id = auth.uid()
         )
-        OR
-        auth.uid() = user_id
+        OR auth.uid() = user_id
     );
 
 CREATE POLICY "Modification pour l'admin de l'auto-école" ON utilisateurs
@@ -105,10 +105,13 @@ CREATE POLICY "Modification pour l'admin de l'auto-école" ON utilisateurs
     USING (
         EXISTS (
             SELECT 1 
-            FROM utilisateurs u 
-            WHERE u.user_id = auth.uid() 
-            AND u.role = 'admin'
-            AND u.auto_ecole_id = utilisateurs.auto_ecole_id
+            FROM auto_ecoles ae 
+            WHERE ae.id = utilisateurs.auto_ecole_id 
+            AND ae.user_id = auth.uid()
+        )
+        OR (
+            auth.uid() = user_id 
+            AND role = 'admin'
         )
     );
 

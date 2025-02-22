@@ -16,6 +16,7 @@ import {
   TruckIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { createClient } from '@/utils/supabase';
 
 // Types
 type ExamType = 'code' | 'practical';
@@ -25,14 +26,16 @@ type FilterType = 'all' | 'upcoming' | 'passed' | 'failed' | 'code' | 'practical
 // Types pour les entités
 interface Student {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
 }
 
 interface Instructor {
   id: string;
-  name: string;
+  nom: string;
+  prenom: string;
   email: string;
   phone: string;
 }
@@ -50,16 +53,17 @@ interface DbExam {
   id: string;
   student: Student;
   instructor: Instructor;
-  vehicle?: Vehicle;
   date: string;
   time: string;
   type: 'code' | 'practical';
   status: 'scheduled' | 'completed' | 'cancelled';
   result?: 'success' | 'fail';
-  notes?: string;
   location?: string;
   score?: string;
   feedback?: string;
+  notes?: string;
+  student_id: string;
+  instructor_id: string;
 }
 
 // Labels et couleurs pour l'interface
@@ -111,24 +115,108 @@ export default function ExamsPage() {
     const fetchExamsData = async () => {
       try {
         setLoading(true);
-        // TODO: Remplacer par les appels à la base de données
-        // const { data: examsData, error: examsError } = await supabase
-        //   .from('exams')
-        //   .select('*, student:students(*), instructor:instructors(*), vehicle:vehicles(*)');
-        
-        // const { data: instructorsData } = await supabase
-        //   .from('instructors')
-        //   .select('*');
-        
-        // const { data: studentsData } = await supabase
-        //   .from('students')
-        //   .select('*');
-        
-        // const { data: vehiclesData } = await supabase
-        //   .from('vehicles')
-        //   .select('*');
+        const supabase = createClient();
 
-        // Pour l'instant, on utilise les données de test
+        // Récupérer l'auto-école de l'utilisateur connecté
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+
+        const { data: autoEcole, error: autoEcoleError } = await supabase
+          .from('auto_ecoles')
+          .select('id')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (autoEcoleError) throw autoEcoleError;
+        
+        // Récupérer les étudiants
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('id, first_name, last_name, email, phone')
+          .eq('statut', 'actif')
+          .eq('auto_ecole_id', autoEcole.id);
+
+        if (studentsError) {
+          throw studentsError;
+        }
+
+        // Récupérer les moniteurs
+        const { data: instructorsData, error: instructorsError } = await supabase
+          .from('moniteurs')
+          .select('id, nom, prenom, email, telephone')
+          .eq('statut', 'actif')
+          .eq('auto_ecole_id', autoEcole.id);
+
+        if (instructorsError) {
+          throw instructorsError;
+        }
+
+        // Récupérer les examens
+        const { data: examsData, error: examsError } = await supabase
+          .from('exams')
+          .select(`
+            id,
+            type,
+            status,
+            date,
+            time,
+            location,
+            result,
+            score,
+            feedback,
+            notes,
+            student_id,
+            instructor_id
+          `)
+          .eq('auto_ecole_id', autoEcole.id)
+          .order('date', { ascending: true });
+
+        if (examsError) {
+          throw examsError;
+        }
+
+        // Transformer les données des moniteurs
+        const formattedInstructors = (instructorsData || []).map(instructor => ({
+          id: instructor.id,
+          nom: instructor.nom,
+          prenom: instructor.prenom,
+          email: instructor.email,
+          phone: instructor.telephone
+        }));
+
+        // Créer un map pour un accès rapide aux étudiants et moniteurs
+        const studentsMap = new Map(studentsData?.map(s => [s.id, s]));
+        const instructorsMap = new Map(formattedInstructors?.map(i => [i.id, i]));
+
+        // Formater les examens avec les données complètes des étudiants et moniteurs
+        const formattedExams = (examsData || []).map(exam => {
+          const student = studentsMap.get(exam.student_id);
+          const instructor = instructorsMap.get(exam.instructor_id);
+          
+          if (!student || !instructor) return null;
+
+          return {
+            id: exam.id,
+            student,
+            instructor,
+            date: exam.date,
+            time: exam.time,
+            type: exam.type as 'code' | 'practical',
+            status: exam.status as 'scheduled' | 'completed' | 'cancelled',
+            result: exam.result as 'success' | 'fail' | undefined,
+            location: exam.location,
+            score: exam.score,
+            feedback: exam.feedback,
+            notes: exam.notes,
+            student_id: exam.student_id,
+            instructor_id: exam.instructor_id
+          } as DbExam;
+        }).filter((exam): exam is DbExam => exam !== null);
+
+        setDbStudents(studentsData || []);
+        setDbInstructors(formattedInstructors);
+        setDbExams(formattedExams);
+        
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       } finally {
@@ -141,48 +229,64 @@ export default function ExamsPage() {
 
   const handleCreateExam = async () => {
     try {
-      // Vérifier que tous les champs requis sont remplis
       if (!newExam.studentId || !newExam.instructorId || !newExam.date || !newExam.time) {
-        setError('Veuillez remplir tous les champs obligatoires');
+        setError("Veuillez remplir tous les champs obligatoires");
         return;
       }
 
-      // Trouver les objets complets
+      const supabase = createClient();
+
+      // Récupérer l'auto-école de l'utilisateur connecté
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+
+      const { data: autoEcole, error: autoEcoleError } = await supabase
+        .from('auto_ecoles')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (autoEcoleError) throw autoEcoleError;
+
+      // Créer l'examen
+      const { data: exam, error: examError } = await supabase
+        .from('exams')
+        .insert({
+          auto_ecole_id: autoEcole.id,
+          student_id: newExam.studentId,
+          instructor_id: newExam.instructorId,
+          type: newExam.type,
+          status: 'scheduled',
+          date: newExam.date,
+          time: newExam.time,
+          location: newExam.location || null
+        })
+        .select()
+        .single();
+
+      if (examError) throw examError;
+
+      // Ajouter l'examen créé à la liste locale
       const student = dbStudents.find(s => s.id === newExam.studentId);
       const instructor = dbInstructors.find(i => i.id === newExam.instructorId);
-      const vehicle = newExam.vehicleId ? dbVehicles.find(v => v.id === newExam.vehicleId) : undefined;
 
-      if (!student || !instructor) {
-        setError('Étudiant ou instructeur non trouvé');
-        return;
+      if (student && instructor) {
+        setDbExams([...dbExams, {
+          ...exam,
+          student: student,
+          instructor: instructor
+        }]);
       }
 
-      if (newExam.type === 'practical' && !vehicle) {
-        setError('Véhicule requis pour un examen pratique');
-        return;
-      }
-
-      const examToCreate: DbExam = {
-        id: `E${Date.now()}`, // Temporaire, sera généré par la base de données
-        student,
-        instructor,
-        vehicle,
-        date: newExam.date,
-        time: newExam.time,
-        type: newExam.type,
-        status: 'scheduled',
-        location: newExam.location
-      };
-
-      // TODO: Implémenter la création de l'examen dans la base de données
-      // const { data, error } = await supabase.from('exams').insert([examToCreate]);
-
-      // Pour l'instant, on ajoute juste à notre état local
-      setDbExams([...dbExams, examToCreate]);
+      setShowNewExamModal(false);
+      setNewExam({
+        type: 'code',
+        status: 'scheduled'
+      });
       
-      handleCloseNewExamModal();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création de l\'examen');
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la création de l\'examen');
     }
   };
 
@@ -240,7 +344,7 @@ export default function ExamsPage() {
   };
 
   const filteredExams = dbExams.filter(exam => {
-    const matchesSearch = exam.student.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = exam.student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || exam.student.last_name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -323,7 +427,7 @@ export default function ExamsPage() {
                     <div className="flex min-w-0 gap-x-4">
                       <div className="min-w-0 flex-auto">
                         <p className="text-sm font-semibold leading-6 text-gray-900">
-                          {exam.student.name}
+                          {exam.student.first_name} {exam.student.last_name}
                         </p>
                         <p className="mt-1 truncate text-xs leading-5 text-gray-500">
                           {exam.student.email}
@@ -396,34 +500,36 @@ export default function ExamsPage() {
                           </label>
                           <select
                             id="student"
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            name="student"
+                            className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
                             value={newExam.studentId || ''}
                             onChange={(e) => setNewExam({ ...newExam, studentId: e.target.value })}
                           >
                             <option value="">Sélectionner un étudiant</option>
                             {dbStudents.map((student) => (
                               <option key={student.id} value={student.id}>
-                                {student.name}
+                                {student.first_name} {student.last_name}
                               </option>
                             ))}
                           </select>
                         </div>
 
-                        {/* Instructeur */}
-                        <div>
-                          <label htmlFor="instructor" className="block text-sm font-medium text-gray-700">
-                            Instructeur
+                        {/* Moniteur */}
+                        <div className="mt-4">
+                          <label htmlFor="instructor" className="block text-sm font-medium leading-6 text-gray-900">
+                            Moniteur
                           </label>
                           <select
                             id="instructor"
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                            name="instructor"
+                            className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
                             value={newExam.instructorId || ''}
                             onChange={(e) => setNewExam({ ...newExam, instructorId: e.target.value })}
                           >
-                            <option value="">Sélectionner un instructeur</option>
+                            <option value="">Sélectionner un moniteur</option>
                             {dbInstructors.map((instructor) => (
                               <option key={instructor.id} value={instructor.id}>
-                                {instructor.name}
+                                {instructor.prenom} {instructor.nom}
                               </option>
                             ))}
                           </select>
@@ -501,7 +607,7 @@ export default function ExamsPage() {
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none sm:col-start-2"
+                    className="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-90 focus:outline-none"
                     onClick={handleCreateExam}
                   >
                     Créer
@@ -564,8 +670,8 @@ export default function ExamsPage() {
                         <div>
                           <h4 className="text-sm font-medium text-gray-500">Étudiant</h4>
                           <div className="mt-1">
-                            <p className="text-sm text-gray-900">{selectedExam.student.name}</p>
-                            <p className="text-sm text-gray-500">ID: {selectedExam.student.id}</p>
+                            <p className="text-sm text-gray-900">{selectedExam.student.first_name} {selectedExam.student.last_name}</p>
+                            <p className="text-sm text-gray-500">{selectedExam.student.email}</p>
                           </div>
                         </div>
 
@@ -594,20 +700,9 @@ export default function ExamsPage() {
                           <h4 className="text-sm font-medium text-gray-500">Moniteur</h4>
                           <div className="mt-1 flex items-center">
                             <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-900">{selectedExam.instructor.name}</span>
+                            <span className="text-sm text-gray-900">{selectedExam.instructor.prenom} {selectedExam.instructor.nom}</span>
                           </div>
                         </div>
-
-                        {/* Véhicule (si examen pratique) */}
-                        {selectedExam.type === 'practical' && selectedExam.vehicle && (
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-500">Véhicule</h4>
-                            <div className="mt-1 flex items-center">
-                              <TruckIcon className="h-5 w-5 text-gray-400 mr-2" />
-                              <span className="text-sm text-gray-900">{selectedExam.vehicle.name} - {selectedExam.vehicle.plate}</span>
-                            </div>
-                          </div>
-                        )}
 
                         {/* Score (si terminé) */}
                         {selectedExam.score && (
@@ -620,12 +715,22 @@ export default function ExamsPage() {
                           </div>
                         )}
 
-                        {/* Feedback (si échoué) */}
+                        {/* Feedback */}
                         {selectedExam.feedback && (
                           <div>
                             <h4 className="text-sm font-medium text-gray-500">Commentaires</h4>
                             <div className="mt-1">
                               <p className="text-sm text-gray-900">{selectedExam.feedback}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {selectedExam.notes && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Notes</h4>
+                            <div className="mt-1">
+                              <p className="text-sm text-gray-900">{selectedExam.notes}</p>
                             </div>
                           </div>
                         )}
