@@ -42,11 +42,10 @@ interface Instructor {
 
 interface Vehicle {
   id: string;
-  name: string;
-  plate: string;
+  brand: string;
+  model: string;
+  license_plate: string;
 }
-
-
 
 // Types pour la base de données
 interface DbExam {
@@ -64,6 +63,9 @@ interface DbExam {
   notes?: string;
   student_id: string;
   instructor_id: string;
+  vehicle_brand?: string;
+  vehicle_model?: string;
+  vehicle_license_plate?: string;
 }
 
 // Labels et couleurs pour l'interface
@@ -86,6 +88,7 @@ const statusColors: Record<string, string> = {
 
 export default function ExamsPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
   const [selectedExam, setSelectedExam] = useState<DbExam | null>(null);
   const [showNewExamModal, setShowNewExamModal] = useState<boolean>(false);
   const [showExamDetailsModal, setShowExamDetailsModal] = useState<boolean>(false);
@@ -119,7 +122,11 @@ export default function ExamsPage() {
 
         // Récupérer l'auto-école de l'utilisateur connecté
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
+        if (userError) {
+          console.error('Erreur lors de la récupération de l\'utilisateur:', userError);
+          throw userError;
+        }
+        console.log('Utilisateur récupéré:', user);
 
         const { data: autoEcole, error: autoEcoleError } = await supabase
           .from('auto_ecoles')
@@ -127,8 +134,34 @@ export default function ExamsPage() {
           .eq('user_id', user?.id)
           .single();
 
-        if (autoEcoleError) throw autoEcoleError;
+        if (autoEcoleError) {
+          console.error('Erreur lors de la récupération de l\'auto-école:', autoEcoleError);
+          throw autoEcoleError;
+        }
+        console.log('Auto-école récupérée:', autoEcole);
         
+        // Récupérer les véhicules
+        const { data: vehiclesData, error: vehiclesError } = await supabase
+          .from('vehicles')
+          .select('id, brand, model, license_plate')
+          .eq('auto_ecole_id', autoEcole.id)
+          .eq('status', 'active');
+
+        if (vehiclesError) {
+          console.error('Erreur lors de la récupération des véhicules:', vehiclesError);
+          throw vehiclesError;
+        }
+        console.log('Véhicules récupérés:', vehiclesData);
+
+        const formattedVehicles = vehiclesData?.map(vehicle => ({
+          id: vehicle.id,
+          brand: vehicle.brand,
+          model: vehicle.model,
+          license_plate: vehicle.license_plate
+        })) || [];
+
+        setDbVehicles(formattedVehicles);
+
         // Récupérer les étudiants
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
@@ -137,8 +170,10 @@ export default function ExamsPage() {
           .eq('auto_ecole_id', autoEcole.id);
 
         if (studentsError) {
+          console.error('Erreur lors de la récupération des étudiants:', studentsError);
           throw studentsError;
         }
+        console.log('Étudiants récupérés:', studentsData);
 
         // Récupérer les moniteurs
         const { data: instructorsData, error: instructorsError } = await supabase
@@ -148,8 +183,10 @@ export default function ExamsPage() {
           .eq('auto_ecole_id', autoEcole.id);
 
         if (instructorsError) {
+          console.error('Erreur lors de la récupération des moniteurs:', instructorsError);
           throw instructorsError;
         }
+        console.log('Moniteurs récupérés:', instructorsData);
 
         // Récupérer les examens
         const { data: examsData, error: examsError } = await supabase
@@ -166,14 +203,19 @@ export default function ExamsPage() {
             feedback,
             notes,
             student_id,
-            instructor_id
+            instructor_id,
+            vehicle_brand,
+            vehicle_model,
+            vehicle_license_plate
           `)
           .eq('auto_ecole_id', autoEcole.id)
           .order('date', { ascending: true });
 
         if (examsError) {
+          console.error('Erreur lors de la récupération des examens:', examsError);
           throw examsError;
         }
+        console.log('Examens récupérés:', examsData);
 
         // Transformer les données des moniteurs
         const formattedInstructors = (instructorsData || []).map(instructor => ({
@@ -209,7 +251,10 @@ export default function ExamsPage() {
             feedback: exam.feedback,
             notes: exam.notes,
             student_id: exam.student_id,
-            instructor_id: exam.instructor_id
+            instructor_id: exam.instructor_id,
+            vehicle_brand: exam.vehicle_brand,
+            vehicle_model: exam.vehicle_model,
+            vehicle_license_plate: exam.vehicle_license_plate
           } as DbExam;
         }).filter((exam): exam is DbExam => exam !== null);
 
@@ -249,8 +294,11 @@ export default function ExamsPage() {
 
       if (autoEcoleError) throw autoEcoleError;
 
+      const selectedVehicle = newExam.type === 'practical' && newExam.vehicleId ? 
+        dbVehicles.find(v => v.id === newExam.vehicleId) : null;
+
       // Créer l'examen
-      const { data: exam, error: examError } = await supabase
+      const { data: newExamData, error: createError } = await supabase
         .from('exams')
         .insert({
           auto_ecole_id: autoEcole.id,
@@ -260,12 +308,15 @@ export default function ExamsPage() {
           status: 'scheduled',
           date: newExam.date,
           time: newExam.time,
-          location: newExam.location || null
+          location: newExam.location || null,
+          vehicle_brand: selectedVehicle?.brand || null,
+          vehicle_model: selectedVehicle?.model || null,
+          vehicle_license_plate: selectedVehicle?.license_plate || null
         })
         .select()
         .single();
 
-      if (examError) throw examError;
+      if (createError) throw createError;
 
       // Ajouter l'examen créé à la liste locale
       const student = dbStudents.find(s => s.id === newExam.studentId);
@@ -273,9 +324,12 @@ export default function ExamsPage() {
 
       if (student && instructor) {
         setDbExams([...dbExams, {
-          ...exam,
+          ...newExamData,
           student: student,
-          instructor: instructor
+          instructor: instructor,
+          vehicle_brand: selectedVehicle?.brand || null,
+          vehicle_model: selectedVehicle?.model || null,
+          vehicle_license_plate: selectedVehicle?.license_plate || null
         }]);
       }
 
@@ -344,8 +398,33 @@ export default function ExamsPage() {
   };
 
   const filteredExams = dbExams.filter(exam => {
-    const matchesSearch = exam.student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || exam.student.last_name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    // Filtre de recherche par nom d'étudiant
+    const matchesSearch = exam.student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         exam.student.last_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtre par type et statut
+    let matchesFilter = true;
+    switch (selectedFilter) {
+      case 'upcoming':
+        matchesFilter = exam.status === 'scheduled';
+        break;
+      case 'passed':
+        matchesFilter = exam.status === 'completed' && exam.result === 'success';
+        break;
+      case 'failed':
+        matchesFilter = exam.status === 'completed' && exam.result === 'fail';
+        break;
+      case 'code':
+        matchesFilter = exam.type === 'code';
+        break;
+      case 'practical':
+        matchesFilter = exam.type === 'practical';
+        break;
+      default:
+        matchesFilter = true;
+    }
+
+    return matchesSearch && matchesFilter;
   });
 
   if (loading) {
@@ -383,8 +462,8 @@ export default function ExamsPage() {
         <div className="flex items-center space-x-2 w-full sm:w-auto">
           <select
             className="block w-full sm:w-auto pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-            value="all"
-            onChange={(e) => console.log(e.target.value)}
+            value={selectedFilter}
+            onChange={(e) => setSelectedFilter(e.target.value as FilterType)}
           >
             <option value="all">Tous les examens</option>
             <option value="upcoming">À venir</option>
@@ -479,17 +558,17 @@ export default function ExamsPage() {
                       <form className="space-y-4">
                         {/* Type d'examen */}
                         <div>
-                          <label htmlFor="exam-type" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="type" className="block text-sm font-medium text-gray-700">
                             Type d'examen
                           </label>
                           <select
-                            id="exam-type"
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                            value={newExam.type}
+                            id="type"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                            value={newExam.type || 'code'}
                             onChange={(e) => setNewExam({ ...newExam, type: e.target.value as 'code' | 'practical' })}
                           >
-                            <option value="code">Code de la route</option>
-                            <option value="practical">Conduite</option>
+                            <option value="code">Code</option>
+                            <option value="practical">Pratique</option>
                           </select>
                         </div>
 
@@ -500,8 +579,7 @@ export default function ExamsPage() {
                           </label>
                           <select
                             id="student"
-                            name="student"
-                            className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                             value={newExam.studentId || ''}
                             onChange={(e) => setNewExam({ ...newExam, studentId: e.target.value })}
                           >
@@ -515,14 +593,13 @@ export default function ExamsPage() {
                         </div>
 
                         {/* Moniteur */}
-                        <div className="mt-4">
-                          <label htmlFor="instructor" className="block text-sm font-medium leading-6 text-gray-900">
+                        <div>
+                          <label htmlFor="instructor" className="block text-sm font-medium text-gray-700">
                             Moniteur
                           </label>
                           <select
                             id="instructor"
-                            name="instructor"
-                            className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                             value={newExam.instructorId || ''}
                             onChange={(e) => setNewExam({ ...newExam, instructorId: e.target.value })}
                           >
@@ -543,14 +620,14 @@ export default function ExamsPage() {
                             </label>
                             <select
                               id="vehicle"
-                              className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                               value={newExam.vehicleId || ''}
                               onChange={(e) => setNewExam({ ...newExam, vehicleId: e.target.value })}
                             >
                               <option value="">Sélectionner un véhicule</option>
                               {dbVehicles.map((vehicle) => (
                                 <option key={vehicle.id} value={vehicle.id}>
-                                  {vehicle.name} - {vehicle.plate}
+                                  {vehicle.brand} {vehicle.model} - {vehicle.license_plate}
                                 </option>
                               ))}
                             </select>
@@ -558,7 +635,7 @@ export default function ExamsPage() {
                         )}
 
                         {/* Date et heure */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                           <div>
                             <label htmlFor="date" className="block text-sm font-medium text-gray-700">
                               Date
@@ -703,6 +780,19 @@ export default function ExamsPage() {
                             <span className="text-sm text-gray-900">{selectedExam.instructor.prenom} {selectedExam.instructor.nom}</span>
                           </div>
                         </div>
+
+                        {/* Véhicule (si examen pratique) */}
+                        {selectedExam.type === 'practical' && selectedExam.vehicle_brand && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500">Véhicule</h4>
+                            <div className="mt-1 flex items-center">
+                              <TruckIcon className="h-5 w-5 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">
+                                {selectedExam.vehicle_brand} {selectedExam.vehicle_model} - {selectedExam.vehicle_license_plate}
+                              </span>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Score (si terminé) */}
                         {selectedExam.score && (
